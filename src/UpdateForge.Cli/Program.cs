@@ -7,6 +7,8 @@ using UpdateForge.Core.Providers;
 using UpdateForge.Core.Updates;
 using UpdateForge.Infrastructure;
 using UpdateForge.Providers.Windows;
+using UpdateForge.Providers.Chocolatey;
+using UpdateForge.Providers.Scoop;
 using UpdateForge.Providers.WinGet;
 
 namespace UpdateForge.Cli;
@@ -33,6 +35,9 @@ internal static class Program
             .AddUpdateForgeCore()
             .AddSingleton<IUpdateProvider, RegistryInventoryProvider>()
             .AddSingleton<IUpdateProvider, WinGetProvider>()
+            .AddSingleton<IUpdateProvider, MicrosoftStoreProvider>()
+            .AddSingleton<IUpdateProvider, ScoopProvider>()
+            .AddSingleton<IUpdateProvider, ChocolateyProvider>()
             .AddSingleton<IScheduleService, ScheduledTaskService>()
             .AddSingleton<BackgroundRunner>()
             .BuildServiceProvider();

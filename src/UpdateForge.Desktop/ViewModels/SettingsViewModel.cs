@@ -5,13 +5,20 @@ using UpdateForge.Core.Updates;
 
 namespace UpdateForge.Desktop.ViewModels;
 
+public sealed partial class ProviderToggle(string id, string displayName) : ObservableObject
+{
+    public string Id { get; } = id;
+    public string DisplayName { get; } = displayName;
+    [ObservableProperty] private bool _isEnabled;
+}
+
 public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleService schedule, ProviderRegistry providers) : ObservableObject
 {
     public IReadOnlyList<ScanInterval> Intervals { get; } = Enum.GetValues<ScanInterval>();
     // Managed automatic mode is intentionally not offered until the elevated execution mechanism is tested.
     public IReadOnlyList<AutomaticMode> Modes { get; } = [AutomaticMode.Manual, AutomaticMode.AutomaticSafe];
     public IReadOnlyList<string> Themes { get; } = ["System", "Light", "Dark"];
-    public IReadOnlyList<string> ProviderIds { get; } = [.. providers.All.Select(p => p.Id)];
+    public IReadOnlyList<ProviderToggle> ProviderToggles { get; } = [.. providers.All.OrderBy(p => p.DisplayName).Select(p => new ProviderToggle(p.Id, p.DisplayName))];
 
     [ObservableProperty] private AutomaticMode _mode;
     [ObservableProperty] private ScanInterval _interval;
@@ -26,8 +33,6 @@ public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleSer
     [ObservableProperty] private bool _notifyCompleted = true;
     [ObservableProperty] private bool _notifyFailed = true;
     [ObservableProperty] private bool _notifyRestart = true;
-    [ObservableProperty] private bool _wingetEnabled = true;
-    [ObservableProperty] private bool _registryEnabled = true;
     [ObservableProperty] private string _scheduleText = "";
     [ObservableProperty] private string _saveMessage = "";
 
@@ -41,8 +46,7 @@ public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleSer
         Mode = s.Mode; Interval = s.Interval; CustomHours = s.CustomIntervalHours; CheckAtStartup = s.CheckAtStartup;
         RunOnBattery = s.RunOnBattery; RunOnMetered = s.RunOnMeteredConnection; CloseToTray = s.CloseToTray; MinimizeToTray = s.MinimizeToTray;
         Theme = s.Theme; NotifyNew = s.NotifyNewUpdates; NotifyCompleted = s.NotifyCompleted; NotifyFailed = s.NotifyFailed; NotifyRestart = s.NotifyRestart;
-        WingetEnabled = s.EnabledProviders.Contains("winget", StringComparer.OrdinalIgnoreCase);
-        RegistryEnabled = s.EnabledProviders.Contains("registry", StringComparer.OrdinalIgnoreCase);
+        foreach (var t in ProviderToggles) t.IsEnabled = s.EnabledProviders.Contains(t.Id, StringComparer.OrdinalIgnoreCase);
         RefreshScheduleText();
     }
 
@@ -59,9 +63,7 @@ public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleSer
     [RelayCommand]
     private async Task SaveAsync()
     {
-        var providersEnabled = new List<string>();
-        if (WingetEnabled) providersEnabled.Add("winget");
-        if (RegistryEnabled) providersEnabled.Add("registry");
+        var providersEnabled = ProviderToggles.Where(t => t.IsEnabled).Select(t => t.Id).ToList();
         var s = (await store.LoadAsync(default)) with
         {
             Mode = Mode, Interval = Interval, CustomIntervalHours = CustomHours, CheckAtStartup = CheckAtStartup,

@@ -14,4 +14,13 @@
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UpdateForge.Providers.Scoop\UpdateForge.Providers.Scoop.csproj" />
+    <ProjectReference Include="..\..\src\UpdateForge.Providers.Chocolatey\UpdateForge.Providers.Chocolatey.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>windows</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

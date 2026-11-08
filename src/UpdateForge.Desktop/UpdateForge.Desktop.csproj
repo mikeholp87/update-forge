@@ -23,4 +23,8 @@
     <PackageReference Include="WPF-UI" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UpdateForge.Providers.Scoop\UpdateForge.Providers.Scoop.csproj" />
+    <ProjectReference Include="..\UpdateForge.Providers.Chocolatey\UpdateForge.Providers.Chocolatey.csproj" />
+  </ItemGroup>
 </Project>

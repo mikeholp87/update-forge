@@ -37,8 +37,8 @@ public sealed partial class RegistryInventoryProvider : IUpdateProvider
         [
             (RegistryHive.LocalMachine, RegistryView.Registry64, "HKLM64", InstallScope.Machine, "x64"),
             (RegistryHive.LocalMachine, RegistryView.Registry32, "HKLM32", InstallScope.Machine, "x86"),
-            (RegistryHive.CurrentUser, RegistryView.Registry64, "HKCU64", InstallScope.User, null),
-            (RegistryHive.CurrentUser, RegistryView.Registry32, "HKCU32", InstallScope.User, "x86"),
+            // HKCU is not WOW64-redirected: both views return the same keys, so it is scanned once.
+            (RegistryHive.CurrentUser, RegistryView.Registry64, "HKCU", InstallScope.User, null),
         ];
 
         foreach (var (hive, view, tag, scope, arch) in roots)

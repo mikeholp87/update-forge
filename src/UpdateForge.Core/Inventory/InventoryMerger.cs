@@ -14,6 +14,9 @@ public static partial class InventoryMerger
 {
     public const string RegistryProviderId = "registry";
 
+    /// <summary>Providers that only report what is installed (no update capability); folded into package-manager entries when unambiguous.</summary>
+    public static bool IsInventoryOnly(string providerId) => providerId is RegistryProviderId or "msix";
+
     [GeneratedRegex(@"\((?:[^)]*(?:bit|x64|x86|arm64|amd64)[^)]*)\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ArchTag();
 
@@ -50,7 +53,7 @@ public static partial class InventoryMerger
         var inventoryOnly = new List<InstalledApplication>();
         foreach (var app in list)
         {
-            if (app.ProviderId == RegistryProviderId) { inventoryOnly.Add(app); continue; }
+            if (IsInventoryOnly(app.ProviderId)) { inventoryOnly.Add(app); continue; }
             var idx = primaries.FindIndex(p => p.ProviderId == app.ProviderId && p.PackageId is not null
                 && string.Equals(p.PackageId, app.PackageId, StringComparison.OrdinalIgnoreCase) && p.Scope == app.Scope);
             if (idx < 0) primaries.Add(app);
@@ -76,8 +79,8 @@ public static partial class InventoryMerger
                 InstallLocation = p.InstallLocation ?? r.InstallLocation,
                 ProductCode = p.ProductCode ?? r.ProductCode,
                 Architecture = p.Architecture ?? r.Architecture,
-                Evidence = [.. p.Evidence, .. r.Evidence],
-                Confidence = Confidence(r, p),
+                // Link quality is recorded as evidence; the package keeps its own (authoritative) identity confidence.
+                Evidence = [.. p.Evidence, .. r.Evidence.Select(e => e with { Detail = $"registry link: {Confidence(r, p)}" })],
             };
         }
 
