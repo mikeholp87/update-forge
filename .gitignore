@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+*.db
+*.db-wal
+*.db-shm
+artifacts/
+TestResults/
+*.pfx
+*.snk

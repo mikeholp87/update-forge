@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UpdateForge.Core\UpdateForge.Core.csproj" />
+    <ProjectReference Include="..\..\src\UpdateForge.Application\UpdateForge.Application.csproj" />
+    <ProjectReference Include="..\..\src\UpdateForge.Infrastructure\UpdateForge.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\UpdateForge.Providers.WinGet\UpdateForge.Providers.WinGet.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+</Project>
