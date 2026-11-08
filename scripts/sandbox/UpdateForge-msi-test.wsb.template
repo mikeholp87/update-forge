@@ -1,0 +1,13 @@
+<Configuration>
+  <!-- Replace __INPUT__, __RESULTS__, __SCRIPTS__ with absolute host paths (scripts/sandbox/launch.ps1 does this). -->
+  <VGpu>Disable</VGpu>
+  <Networking>Enable</Networking>
+  <MappedFolders>
+    <MappedFolder><HostFolder>__INPUT__</HostFolder><SandboxFolder>C:\Input</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
+    <MappedFolder><HostFolder>__SCRIPTS__</HostFolder><SandboxFolder>C:\Scripts</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
+    <MappedFolder><HostFolder>__RESULTS__</HostFolder><SandboxFolder>C:\Results</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Scripts\run-msi-test.ps1</Command>
+  </LogonCommand>
+</Configuration>
