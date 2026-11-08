@@ -9,5 +9,6 @@
     <ProjectReference Include="..\UpdateForge.Infrastructure\UpdateForge.Infrastructure.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.WinGet\UpdateForge.Providers.WinGet.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Windows\UpdateForge.Providers.Windows.csproj" />
+    <ProjectReference Include="..\UpdateForge.Background\UpdateForge.Background.csproj" />
   </ItemGroup>
 </Project>

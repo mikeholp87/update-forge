@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using UpdateForge.Application;
+using UpdateForge.Background;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Providers;
 using UpdateForge.Core.Updates;
@@ -32,6 +33,8 @@ internal static class Program
             .AddUpdateForgeCore()
             .AddSingleton<IUpdateProvider, RegistryInventoryProvider>()
             .AddSingleton<IUpdateProvider, WinGetProvider>()
+            .AddSingleton<IScheduleService, ScheduledTaskService>()
+            .AddSingleton<BackgroundRunner>()
             .BuildServiceProvider();
 
         try
@@ -45,6 +48,8 @@ internal static class Program
                 "history" => await History(services, json, cts.Token),
                 "providers" => await Providers(services, json, cts.Token),
                 "doctor" => await Doctor(services, json, cts.Token),
+                "background" when rest.Length > 1 && rest[1] == "run" => await Background(services, json, cts.Token),
+                "schedule" => await Schedule(services, rest[1..], json, cts.Token),
                 _ => Fail($"Unknown command '{rest[0]}'.", ExitCodes.Usage),
             };
         }
@@ -143,6 +148,37 @@ internal static class Program
             foreach (var r in results) Console.WriteLine($"{r.Application.Name}: {r.FinalState} - {r.Message}");
 
         return results.Any(r => r.FinalState is JobState.Failed or JobState.Blocked) ? ExitCodes.SomeFailed : ExitCodes.Ok;
+    }
+
+    private static async Task<int> Background(ServiceProvider sp, bool json, CancellationToken ct)
+    {
+        var summary = await sp.GetRequiredService<BackgroundRunner>().RunAsync(ct);
+        Console.WriteLine(json ? JsonSerializer.Serialize(summary, JsonOut) : summary.ToString());
+        return summary.Failed > 0 ? ExitCodes.SomeFailed : ExitCodes.Ok;
+    }
+
+    private static async Task<int> Schedule(ServiceProvider sp, string[] args, bool json, CancellationToken ct)
+    {
+        var svc = sp.GetRequiredService<IScheduleService>();
+        var sub = args.Length > 0 ? args[0] : "status";
+        switch (sub)
+        {
+            case "status":
+                var st = svc.GetStatus();
+                Console.WriteLine(json ? JsonSerializer.Serialize(st, JsonOut) : st.ToString());
+                return ExitCodes.Ok;
+            case "apply":
+                var settings = await sp.GetRequiredService<ISettingsStore>().LoadAsync(ct);
+                svc.Apply(settings, Path.Combine(AppContext.BaseDirectory, "updateforge.exe"));
+                Console.WriteLine("Scheduled task registered for the current user (not elevated).");
+                return ExitCodes.Ok;
+            case "remove":
+                svc.Remove();
+                Console.WriteLine("Scheduled task removed.");
+                return ExitCodes.Ok;
+            default:
+                return Fail("Usage: updateforge schedule [status|apply|remove]", ExitCodes.Usage);
+        }
     }
 
     private static async Task<int> History(ServiceProvider sp, bool json, CancellationToken ct)

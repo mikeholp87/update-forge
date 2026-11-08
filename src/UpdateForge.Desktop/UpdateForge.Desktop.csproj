@@ -3,14 +3,23 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>UpdateForge.Desktop</RootNamespace>
     <AssemblyName>UpdateForge</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <NoWarn>$(NoWarn);CA1001;CA1822</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <Using Include="System.IO" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UpdateForge.Infrastructure\UpdateForge.Infrastructure.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.WinGet\UpdateForge.Providers.WinGet.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Windows\UpdateForge.Providers.Windows.csproj" />
+    <ProjectReference Include="..\UpdateForge.Background\UpdateForge.Background.csproj" />
     <PackageReference Include="WPF-UI" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>

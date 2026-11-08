@@ -20,6 +20,8 @@ public sealed record AppSettings
     public bool RunOnBattery { get; init; }
     public bool RunOnMeteredConnection { get; init; }
     public bool RetryFailedUpdates { get; init; } = true;
+    /// <summary>Tray "Pause automatic updates": scheduled runs scan but never install while true.</summary>
+    public bool AutomaticPaused { get; init; }
     public bool MinimizeToTray { get; init; }
     public bool CloseToTray { get; init; }
     public bool LaunchAtLogin { get; init; }

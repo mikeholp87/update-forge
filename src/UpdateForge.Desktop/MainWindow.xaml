@@ -1,12 +1,50 @@
-﻿<Window x:Class="UpdateForge.Desktop.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:UpdateForge.Desktop"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+<ui:FluentWindow x:Class="UpdateForge.Desktop.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:views="clr-namespace:UpdateForge.Desktop.Views"
+                 xmlns:vm="clr-namespace:UpdateForge.Desktop.ViewModels"
+                 Title="UpdateForge" Width="1180" Height="760" MinWidth="900" MinHeight="600"
+                 WindowStartupLocation="CenterScreen" ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica" WindowCornerPreference="Round"
+                 AutomationProperties.Name="UpdateForge main window">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar Grid.Row="0" Title="UpdateForge" ShowMaximize="True" />
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
+            <StackPanel Grid.Column="0" Margin="12,8,8,12" AutomationProperties.Name="Navigation">
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Dashboard}"
+                           Icon="{ui:SymbolIcon Home24}" Content="Dashboard" AutomationProperties.Name="Go to Dashboard" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Applications}"
+                           Icon="{ui:SymbolIcon AppsList24}" Content="Installed applications" AutomationProperties.Name="Go to Installed applications" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Queue}"
+                           Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update queue" AutomationProperties.Name="Go to Update queue" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.History}"
+                           Icon="{ui:SymbolIcon History24}" Content="History" AutomationProperties.Name="Go to History" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Settings}"
+                           Icon="{ui:SymbolIcon Settings24}" Content="Settings" AutomationProperties.Name="Go to Settings" />
+            </StackPanel>
+
+            <Grid Grid.Column="1" Margin="8,0,24,16">
+                <views:DashboardView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Dashboard}" />
+                <views:ApplicationsView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Applications}" />
+                <views:QueueView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Queue}" />
+                <views:HistoryView DataContext="{Binding HistoryPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=History}" />
+                <views:SettingsView DataContext="{Binding SettingsPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Settings}" />
+            </Grid>
+        </Grid>
     </Grid>
-</Window>
+</ui:FluentWindow>
