@@ -83,7 +83,7 @@ public sealed partial class ScoopProvider : IUpdateProvider
 
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(_scoopScript) || !File.Exists(_powershell)) return ProviderAvailability.Unavailable("Scoop is not installed.");
+        if (!File.Exists(_scoopScript) || !File.Exists(_powershell)) return ProviderAvailability.NotInstalled("Scoop is not installed.");
         var r = await _runner.RunAsync(Spec(TimeSpan.FromSeconds(60), null, "--version"), cancellationToken).ConfigureAwait(false);
         return r.ExitCode == 0 ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim(), null) : ProviderAvailability.Unavailable("Scoop did not respond.");
     }

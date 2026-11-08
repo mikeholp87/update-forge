@@ -55,6 +55,7 @@ internal static class Program
                 "doctor" => await Doctor(services, json, cts.Token),
                 "background" when rest.Length > 1 && rest[1] == "run" => await Background(services, json, cts.Token),
                 "schedule" => await Schedule(services, rest[1..], json, cts.Token),
+                "diagnostics" when rest.Length > 1 && rest[1] == "export" => await ExportDiagnostics(services, rest.Length > 2 ? rest[2] : null, cts.Token),
                 _ => Fail($"Unknown command '{rest[0]}'.", ExitCodes.Usage),
             };
         }
@@ -86,7 +87,7 @@ internal static class Program
         var result = await sp.GetRequiredService<InventoryService>().ScanAsync(settings, new Progress<string>(m => { if (!json) Console.Error.WriteLine(m); }), ct);
         var apps = outdatedOnly ? result.Applications.Where(a => a.UpdateAvailable).ToList() : result.Applications.ToList();
         Print(apps, json, $"{result.Applications.Count} applications, {result.Applications.Count(a => a.UpdateAvailable)} with updates, scanned in {result.Duration.TotalSeconds:F1}s");
-        foreach (var p in result.Providers.Where(p => !p.Availability.IsAvailable || p.Error is not null))
+        foreach (var p in result.Providers.Where(p => p.Availability.Health != ProviderHealth.NotInstalled && (!p.Availability.IsAvailable || p.Error is not null)))
             Console.Error.WriteLine($"! Provider {p.ProviderId}: {p.Error ?? p.Availability.Message}");
         return outdatedOnly && apps.Count > 0 ? ExitCodes.UpdatesAvailable : ExitCodes.Ok;
     }
@@ -174,7 +175,7 @@ internal static class Program
                 return ExitCodes.Ok;
             case "apply":
                 var settings = await sp.GetRequiredService<ISettingsStore>().LoadAsync(ct);
-                svc.Apply(settings, Path.Combine(AppContext.BaseDirectory, "updateforge.exe"));
+                svc.Apply(settings, ScheduledTaskService.DefaultExecutablePath);
                 Console.WriteLine("Scheduled task registered for the current user (not elevated).");
                 return ExitCodes.Ok;
             case "remove":
@@ -184,6 +185,14 @@ internal static class Program
             default:
                 return Fail("Usage: updateforge schedule [status|apply|remove]", ExitCodes.Usage);
         }
+    }
+
+    private static async Task<int> ExportDiagnostics(ServiceProvider sp, string? path, CancellationToken ct)
+    {
+        path ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"updateforge-diagnostics-{DateTime.Now:yyyyMMdd-HHmm}.zip");
+        await sp.GetRequiredService<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>().ExportAsync(path, ServiceCollectionExtensions.LogDirectory, ct);
+        Console.WriteLine($"Redacted diagnostics written to {path}. Review it before attaching it to a GitHub issue.");
+        return ExitCodes.Ok;
     }
 
     private static async Task<int> History(ServiceProvider sp, bool json, CancellationToken ct)
@@ -222,7 +231,8 @@ internal static class Program
         foreach (var p in sp.GetRequiredService<ProviderRegistry>().All)
         {
             var a = await p.CheckAvailabilityAsync(ct);
-            checks.Add(($"Provider {p.Id}", a.IsAvailable, a.Version ?? a.Message ?? a.Health.ToString()));
+            // Optional tools that are simply not installed are informational, not failures.
+            checks.Add(($"Provider {p.Id}", a.IsAvailable || a.Health == ProviderHealth.NotInstalled, a.Version ?? a.Message ?? a.Health.ToString()));
         }
         if (json) Console.WriteLine(JsonSerializer.Serialize(checks.Select(c => new { c.Name, c.Ok, c.Detail }), JsonOut));
         else foreach (var c in checks) Console.WriteLine($"[{(c.Ok ? " OK " : "FAIL")}] {c.Name}: {c.Detail}");

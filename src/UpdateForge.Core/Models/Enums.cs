@@ -22,7 +22,8 @@ public enum InstallScope { Unknown = 0, User, Machine }
 
 public enum IdentityConfidence { Low = 0, Medium, High, Exact }
 
-public enum ProviderHealth { Unknown = 0, Available, Unavailable, Degraded }
+/// <summary>NotInstalled marks an optional tool that simply is not present; it is not an error.</summary>
+public enum ProviderHealth { Unknown = 0, Available, Unavailable, Degraded, NotInstalled }
 
 public enum UpdateOutcome { Succeeded, RestartRequired, Failed, ManualActionRequired, Blocked, Canceled, NoChange }
 

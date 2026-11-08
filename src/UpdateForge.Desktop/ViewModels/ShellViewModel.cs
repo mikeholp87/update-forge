@@ -102,7 +102,7 @@ public sealed partial class ShellViewModel : ObservableObject
             var progress = new Progress<string>(m => Status = m);
             var result = await _inventory.ScanAsync(_settings, progress, default);
             Rebuild(result.Applications);
-            var problems = result.Providers.Where(p => !p.Availability.IsAvailable || p.Error is not null).ToList();
+            var problems = result.Providers.Where(p => p.Availability.Health != ProviderHealth.NotInstalled && (!p.Availability.IsAvailable || p.Error is not null)).ToList();
             ProviderNotice = problems.Count == 0 ? "" : string.Join("  ", problems.Select(p => $"{p.ProviderId}: {p.Error ?? p.Availability.Message}"));
             Status = $"Scan complete: {result.Applications.Count} applications in {result.Duration.TotalSeconds:F1}s.";
             if (UpdatesCount > 0 && _settings.NotifyNewUpdates) Notify?.Invoke("Updates available", $"{UpdatesCount} application update(s) can be installed.");

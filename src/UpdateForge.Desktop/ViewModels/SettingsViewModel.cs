@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UpdateForge.Application;
+using UpdateForge.Background;
 using UpdateForge.Core.Updates;
 
 namespace UpdateForge.Desktop.ViewModels;
@@ -74,7 +75,7 @@ public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleSer
         await store.SaveAsync(s, default);
         try
         {
-            schedule.Apply(s.Validated(), Path.Combine(AppContext.BaseDirectory, "updateforge.exe"));
+            schedule.Apply(s.Validated(), ScheduledTaskService.DefaultExecutablePath);
             SaveMessage = "Saved. Scheduled task updated.";
         }
         catch (Exception ex) { SaveMessage = "Settings saved, but the scheduled task could not be updated: " + ex.Message; }

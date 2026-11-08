@@ -50,6 +50,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProviderRegistry>();
         services.AddSingleton<InventoryService>();
         services.AddSingleton<UpdateEngine>();
+        services.AddSingleton<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>();
 
         Directory.CreateDirectory(LogDirectory);
         var logger = new LoggerConfiguration()

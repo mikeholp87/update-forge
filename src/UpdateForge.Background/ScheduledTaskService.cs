@@ -11,6 +11,11 @@ public sealed class ScheduledTaskService : IScheduleService
 {
     public const string FolderName = "UpdateForge";
     public const string TaskName = "Scheduled Scan";
+
+    /// <summary>Command-line executable the task runs. It must live next to the GUI executable (same install folder).</summary>
+    public const string CliExecutableName = "updateforge-cli.exe";
+
+    public static string DefaultExecutablePath => Path.Combine(AppContext.BaseDirectory, CliExecutableName);
     private static string FullName => $@"\{FolderName}\{TaskName}";
 
     public ScheduleStatus GetStatus()

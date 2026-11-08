@@ -4,6 +4,7 @@ public sealed record ProviderAvailability(ProviderHealth Health, string? Version
 {
     public bool IsAvailable => Health is ProviderHealth.Available or ProviderHealth.Degraded;
     public static ProviderAvailability Unavailable(string message) => new(ProviderHealth.Unavailable, null, message);
+    public static ProviderAvailability NotInstalled(string message) => new(ProviderHealth.NotInstalled, null, message);
 }
 
 public sealed record AvailableUpdate(string ApplicationId, string PackageId, string ProviderId, string InstalledVersion, string AvailableVersion, string? Source);

@@ -60,7 +60,7 @@ public sealed partial class ChocolateyProvider : IUpdateProvider
 
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(_exe)) return ProviderAvailability.Unavailable("Chocolatey is not installed.");
+        if (!File.Exists(_exe)) return ProviderAvailability.NotInstalled("Chocolatey is not installed.");
         var r = await _runner.RunAsync(new ProcessSpec(_exe, ["--version"], TimeSpan.FromSeconds(30)), cancellationToken).ConfigureAwait(false);
         return r.ExitCode == 0 ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim(), null) : ProviderAvailability.Unavailable("Chocolatey did not respond.");
     }
