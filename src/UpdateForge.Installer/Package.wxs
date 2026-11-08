@@ -1,0 +1,68 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!-- Per-user installation: no administrator rights needed. Uninstall removes the app and its scheduled task but
+       never touches software UpdateForge updated, and keeps %LOCALAPPDATA%\UpdateForge (settings/history). -->
+  <Package Name="UpdateForge"
+           Manufacturer="UpdateForge contributors"
+           Version="$(Version)"
+           UpgradeCode="7B6B8E3A-5C4D-4B0A-9A55-3E2C7C1D9F10"
+           Scope="perUser"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of UpdateForge is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="UpdateForge" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuDir" Name="UpdateForge" />
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="UpdateForge" Level="1" AllowAbsent="no" Display="expand" ConfigurableDirectory="INSTALLFOLDER">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <Feature Id="DesktopShortcutFeature" Title="Desktop shortcut" Level="2" AllowAbsent="yes">
+        <ComponentRef Id="DesktopShortcut" />
+      </Feature>
+      <Feature Id="StartAtLoginFeature" Title="Start UpdateForge at login (minimized to tray)" Level="2" AllowAbsent="yes">
+        <ComponentRef Id="StartAtLogin" />
+      </Feature>
+    </Feature>
+
+    <Component Id="StartMenuShortcut" Directory="StartMenuDir" Guid="*">
+      <Shortcut Id="StartMenuShortcutItem" Name="UpdateForge" Description="Keep your software up to date"
+                Target="[INSTALLFOLDER]UpdateForge.exe" WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\UpdateForge\Installer" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="*">
+      <Shortcut Id="DesktopShortcutItem" Name="UpdateForge" Target="[INSTALLFOLDER]UpdateForge.exe" WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKCU" Key="Software\UpdateForge\Installer" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="StartAtLogin" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="UpdateForge"
+                     Type="string" Value="&quot;[INSTALLFOLDER]UpdateForge.exe&quot; --minimized" KeyPath="yes" />
+    </Component>
+
+    <!-- On real uninstall (not upgrade) remove the scheduled task the app registered. Failure here never blocks uninstall. -->
+    <CustomAction Id="RemoveScheduledTask" Directory="INSTALLFOLDER"
+                  ExeCommand="&quot;[INSTALLFOLDER]updateforge-cli.exe&quot; schedule remove" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="RemoveScheduledTask" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <ui:WixUI Id="WixUI_FeatureTree" InstallDirectory="INSTALLFOLDER" />
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(AppPublishDir)**" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>
