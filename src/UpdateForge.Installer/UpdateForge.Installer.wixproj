@@ -4,9 +4,10 @@
     <Version Condition="'$(Version)' == ''">0.1.0</Version>
     <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
     <AppPublishDir Condition="'$(AppPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64\</AppPublishDir>
-    <DefineConstants>Version=$(Version);AppPublishDir=$(AppPublishDir)</DefineConstants>
+    <AppIcon>$(MSBuildThisFileDirectory)..\UpdateForge.Desktop\Assets\UpdateForge.ico</AppIcon>
+    <DefineConstants>Version=$(Version);AppPublishDir=$(AppPublishDir);AppIcon=$(AppIcon)</DefineConstants>
     <!-- Per-user (no-admin) installs of file components trigger these ICE rules by design. -->
-    <SuppressIces>ICE38;ICE60;ICE64;ICE91</SuppressIces>
+    <SuppressIces>ICE38;ICE60;ICE61;ICE64;ICE91</SuppressIces>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WixToolset.UI.wixext" />

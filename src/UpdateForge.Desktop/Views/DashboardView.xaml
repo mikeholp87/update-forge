@@ -82,7 +82,8 @@
             <DataGrid ItemsSource="{Binding PendingUpdates}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
                       GridLinesVisibility="None" CanUserAddRows="False" SelectionMode="Single" AutomationProperties.Name="Available updates">
                 <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <!-- Must build on WPF-UI's own row style; the generic {x:Type DataGridRow} style is the light Windows default (white rows). -->
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
                         <!-- Tag carries the view model so the (visual-tree-less) context menu can reach its commands. -->
                         <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                         <Setter Property="ContextMenu">

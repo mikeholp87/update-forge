@@ -4,6 +4,7 @@
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:views="clr-namespace:UpdateForge.Desktop.Views"
                  xmlns:vm="clr-namespace:UpdateForge.Desktop.ViewModels"
+                 Icon="pack://application:,,,/Assets/UpdateForge.ico"
                  Title="UpdateForge" Width="1180" Height="760" MinWidth="900" MinHeight="600"
                  WindowStartupLocation="CenterScreen" ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="Mica" WindowCornerPreference="Round"
@@ -13,7 +14,11 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <ui:TitleBar Grid.Row="0" Title="UpdateForge" ShowMaximize="True" />
+        <ui:TitleBar Grid.Row="0" Title="UpdateForge" ShowMaximize="True">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/Assets/UpdateForge-512.png" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220" />

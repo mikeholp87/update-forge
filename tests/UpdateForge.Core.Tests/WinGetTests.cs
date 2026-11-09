@@ -105,6 +105,16 @@ public class WinGetExitCodeTests
     }
 
     [Fact]
+    public void Different_install_technology_explains_what_to_do()
+    {
+        // Real case: Task Manager 0.1.0 (exe installer) -> 1.5.1 (portable). WinGet returns 0x8A15008E.
+        var r = WinGetExitCodes.Map(unchecked((int)0x8A15008E), null);
+        Assert.Equal(UpdateOutcome.ManualActionRequired, r.Outcome);
+        Assert.Contains("different", r.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Uninstall", r.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reboot_required_is_flagged() => Assert.True(WinGetExitCodes.Map(unchecked((int)0x8A150109), null).RestartRequired);
 }
 

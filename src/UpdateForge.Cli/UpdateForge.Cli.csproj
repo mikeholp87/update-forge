@@ -4,6 +4,7 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>UpdateForge.Cli</RootNamespace>
     <AssemblyName>updateforge-cli</AssemblyName>
+    <ApplicationIcon>..\UpdateForge.Desktop\Assets\UpdateForge.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\UpdateForge.Infrastructure\UpdateForge.Infrastructure.csproj" />

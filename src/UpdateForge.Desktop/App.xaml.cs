@@ -84,6 +84,7 @@ public partial class App : System.Windows.Application
 
         _window = new MainWindow { DataContext = shell };
         _window.ShouldHideOnClose = () => _settings.CloseToTray;
+        _window.ExitRequested = ExitApplication;
         SystemThemeWatcher.Watch(_window);
 
         _tray = new TrayService();
@@ -128,7 +129,12 @@ public partial class App : System.Windows.Application
             while (showEvent.WaitOne())
             {
                 try { Dispatcher.Invoke(ShowWindow); }
-                catch (Exception ex) when (ex is TaskCanceledException or InvalidOperationException) { return; }
+                catch (TaskCanceledException) { return; }   // dispatcher is shutting down
+                catch (InvalidOperationException ex)
+                {
+                    // Never let one failed show kill the listener: that is what made relaunching do nothing.
+                    _services?.GetService<Microsoft.Extensions.Logging.ILogger<App>>()?.LogUnhandled(ex);
+                }
             }
         }) { IsBackground = true, Name = "UpdateForge show-window listener" }.Start();
 

@@ -14,6 +14,7 @@ public sealed class InventoryService(
     IInventoryStore inventoryStore,
     IScanHistoryStore scanHistory,
     IExclusionStore exclusions,
+    IHistoryStore history,
     ILogger<InventoryService> log)
 {
     /// <summary>Runs every enabled provider concurrently. One failing provider never fails the scan.</summary>
@@ -27,8 +28,10 @@ public sealed class InventoryService(
         var outcomes = await Task.WhenAll(tasks).ConfigureAwait(false);
 
         var excluded = await exclusions.GetExcludedAsync(ct).ConfigureAwait(false);
-        var merged = InventoryMerger.Merge(outcomes.SelectMany(o => o.Apps))
-            .Select(a => excluded.Contains(a.Id) ? a with { IsExcluded = true } : a)
+        var recent = await history.QueryAsync(null, 500, ct).ConfigureAwait(false);
+        var merged = UpgradeEligibility.Apply(
+                [.. InventoryMerger.Merge(outcomes.SelectMany(o => o.Apps)).Select(a => excluded.Contains(a.Id) ? a with { IsExcluded = true } : a)],
+                recent)
             .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

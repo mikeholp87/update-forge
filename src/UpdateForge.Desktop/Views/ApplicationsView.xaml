@@ -33,7 +33,7 @@
                       CanUserAddRows="False" CanUserSortColumns="True" HeadersVisibility="Column" GridLinesVisibility="None"
                       SelectionMode="Single" Margin="0,0,12,0" AutomationProperties.Name="Installed applications list">
                 <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
                         <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                         <Setter Property="ContextMenu">
                             <Setter.Value>
