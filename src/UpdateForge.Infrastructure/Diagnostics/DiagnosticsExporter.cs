@@ -42,7 +42,13 @@ public sealed class DiagnosticsExporter(ISettingsStore settings, IScanHistorySto
 
     public async Task ExportAsync(string zipPath, string logDirectory, CancellationToken ct)
     {
-        if (File.Exists(zipPath)) File.Delete(zipPath);
+        // Never delete an arbitrary file because of a mistyped path: only an earlier .zip may be replaced.
+        if (File.Exists(zipPath))
+        {
+            if (!string.Equals(Path.GetExtension(zipPath), ".zip", StringComparison.OrdinalIgnoreCase))
+                throw new IOException($"'{zipPath}' already exists and is not a .zip file; refusing to overwrite it.");
+            File.Delete(zipPath);
+        }
         using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
 
         void Add(string name, string content)

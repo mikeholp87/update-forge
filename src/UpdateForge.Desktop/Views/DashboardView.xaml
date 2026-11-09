@@ -41,9 +41,9 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
             <ui:Button Appearance="Primary" Icon="{ui:SymbolIcon ArrowSync24}" Content="Scan now" Command="{Binding ScanCommand}"
-                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" Margin="0,0,8,0" AutomationProperties.Name="Scan now" />
+                       IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" AutomationProperties.Name="Scan now" />
             <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update all" Command="{Binding UpdateAllCommand}"
-                       IsEnabled="{Binding IsUpdating, Converter={StaticResource InverseBool}}" Margin="0,0,8,0" AutomationProperties.Name="Update all" />
+                       IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" AutomationProperties.Name="Update all" />
             <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Clock24}" Content="Schedule updates" Command="{Binding NavigateCommand}"
                        CommandParameter="{x:Static vm:PageId.Settings}" Margin="0,0,8,0" AutomationProperties.Name="Schedule updates" />
             <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon History24}" Content="View history" Command="{Binding NavigateCommand}"
@@ -62,14 +62,59 @@
 
         <DockPanel Grid.Row="4" Margin="0,16,0,0">
             <TextBlock DockPanel.Dock="Top" FontSize="18" FontWeight="SemiBold" Text="Available updates" Margin="0,0,0,8" />
+            <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Setter Property="Text" Value="Everything UpdateForge can update is up to date. Use Scan now to check again." />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding UpdatesCount}" Value="0" />
+                                    <Condition Binding="{Binding IsBusy}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <DataGrid ItemsSource="{Binding PendingUpdates}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
                       GridLinesVisibility="None" CanUserAddRows="False" SelectionMode="Single" AutomationProperties.Name="Available updates">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <!-- Tag carries the view model so the (visual-tree-less) context menu can reach its commands. -->
+                        <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <Setter Property="ContextMenu">
+                            <Setter.Value>
+                                <ContextMenu>
+                                    <MenuItem Header="Update"
+                                              Command="{Binding PlacementTarget.Tag.UpdateOneCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanUpdate}" />
+                                </ContextMenu>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Application" Binding="{Binding Name}" Width="2*" />
                     <DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="*" />
                     <DataGridTextColumn Header="Available" Binding="{Binding Available}" Width="*" />
                     <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*" />
                     <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="*" />
+                    <DataGridTemplateColumn Header="" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ui:Button Content="Update" Appearance="Primary" Padding="12,3"
+                                           Command="{Binding DataContext.UpdateOneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           CommandParameter="{Binding}"
+                                           IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           Visibility="{Binding CanUpdate, Converter={StaticResource BoolToVisibility}}"
+                                           AutomationProperties.Name="{Binding Name, StringFormat='Update {0}'}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </DockPanel>

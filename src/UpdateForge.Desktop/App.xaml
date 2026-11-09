@@ -15,6 +15,51 @@
             <conv:InverseBoolConverter x:Key="InverseBool" />
             <conv:StringToVisibilityConverter x:Key="StringToVisibility" />
             <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <Style x:Key="NavDashboard" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="Dashboard">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="NavApplications" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="Applications">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="NavQueue" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="Queue">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="NavHistory" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="History">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="NavSettings" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="Settings">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
             <Style x:Key="PageTitle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="28" />
                 <Setter Property="FontWeight" Value="SemiBold" />

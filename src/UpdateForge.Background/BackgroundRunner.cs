@@ -66,7 +66,7 @@ public sealed class BackgroundRunner(
             await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(s)).ConfigureAwait(false);
             File.Move(tmp, SummaryPath, overwrite: true);
         }
-        catch (IOException ex) { log.LogWarning(ex, "Could not write background summary"); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { log.LogWarning(ex, "Could not write background summary"); }
         return s;
     }
 

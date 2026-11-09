@@ -34,7 +34,9 @@ public sealed partial class WinGetProvider : IUpdateProvider
     public string DisplayName => "Windows Package Manager (WinGet)";
     public ProviderCapabilities Capabilities { get; } = new(CanDiscover: true, CanDetectUpdates: true, CanUpdate: true, SupportsPins: true);
 
-    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._\-]{0,127}$", RegexOptions.CultureInvariant)]
+    // '+' is legal in real WinGet identifiers (e.g. Notepad++.Notepad++). It is not a shell metacharacter, arguments are
+    // passed as a typed list, and the first character must be alphanumeric so an ID can never look like an option.
+    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._+\-]{0,127}$", RegexOptions.CultureInvariant)]
     private static partial Regex PackageIdPattern();
 
     [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9.+_\-]{0,63}$", RegexOptions.CultureInvariant)]

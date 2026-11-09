@@ -61,14 +61,24 @@ public sealed partial class ChocolateyProvider : IUpdateProvider
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(_exe)) return ProviderAvailability.NotInstalled("Chocolatey is not installed.");
-        var r = await _runner.RunAsync(new ProcessSpec(_exe, ["--version"], TimeSpan.FromSeconds(30)), cancellationToken).ConfigureAwait(false);
-        return r.ExitCode == 0 ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim(), null) : ProviderAvailability.Unavailable("Chocolatey did not respond.");
+        try
+        {
+            var r = await _runner.RunAsync(new ProcessSpec(_exe, ["--version"], TimeSpan.FromSeconds(30)), cancellationToken).ConfigureAwait(false);
+            return r.ExitCode == 0 && !r.TimedOut ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim(), null) : ProviderAvailability.Unavailable("Chocolatey did not respond.");
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return ProviderAvailability.Unavailable("Chocolatey could not be started: " + ex.Message);
+        }
     }
 
     public async Task<IReadOnlyList<InstalledApplication>> DiscoverAsync(CancellationToken cancellationToken)
     {
         var list = await _runner.RunAsync(new ProcessSpec(_exe, ["list", "--local-only", "--limit-output", "--no-color"], TimeSpan.FromMinutes(2)), cancellationToken).ConfigureAwait(false);
-        var outdated = await _runner.RunAsync(new ProcessSpec(_exe, ["outdated", "--limit-output", "--ignore-pinned=false", "--no-color"], TimeSpan.FromMinutes(3)), cancellationToken).ConfigureAwait(false);
+        var outdated = await _runner.RunAsync(new ProcessSpec(_exe, ["outdated", "--limit-output", "--no-color"], TimeSpan.FromMinutes(3)), cancellationToken).ConfigureAwait(false);
+        // A failed or timed-out query must surface as a provider problem, never as "everything is up to date".
+        if (list.TimedOut || list.ExitCode != 0) throw new InvalidOperationException(list.TimedOut ? "choco list timed out." : $"choco list failed (exit code {list.ExitCode}).");
+        if (outdated.TimedOut) throw new TimeoutException("choco outdated timed out.");
         var out_ = ChocolateyParsing.ParseOutdated(outdated.StdOut).ToDictionary(o => o.Id, StringComparer.OrdinalIgnoreCase);
         var elevated = _isElevated();
         var now = DateTimeOffset.UtcNow;

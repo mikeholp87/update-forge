@@ -2,6 +2,8 @@
 # and writes results to the mapped results folder.
 $ErrorActionPreference = 'Continue'
 $res = 'C:\Results'
+New-Item -ItemType Directory -Force $res | Out-Null
+'started' | Set-Content (Join-Path $res 'started.txt')
 $log = Join-Path $res 'msi-test.log'
 function Log($m) { "$((Get-Date).ToString('s')) $m" | Tee-Object -FilePath $log -Append }
 function Check($name, $ok) { Log ("{0}: {1}" -f ($(if ($ok) { 'PASS' } else { 'FAIL' })), $name) }

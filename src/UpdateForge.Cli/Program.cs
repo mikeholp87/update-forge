@@ -22,6 +22,8 @@ internal static class Program
 {
     private static readonly JsonSerializerOptions JsonOut = new() { WriteIndented = true, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
 
+    private static readonly CancellationTokenSource HardCancel = new();
+
     private static async Task<int> Main(string[] args)
     {
         var json = args.Contains("--json");
@@ -29,7 +31,14 @@ internal static class Program
         if (rest.Length == 0 || rest[0] is "-h" or "--help" or "help") { PrintHelp(); return rest.Length == 0 ? ExitCodes.Usage : ExitCodes.Ok; }
 
         using var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+        // First Ctrl+C stops starting new work and lets a running installer finish; a second Ctrl+C terminates it.
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            if (cts.IsCancellationRequested) { HardCancel.Cancel(); return; }
+            Console.Error.WriteLine("Canceling after the current installer finishes. Press Ctrl+C again to stop it now (may leave a partial install).");
+            cts.Cancel();
+        };
 
         var services = new ServiceCollection()
             .AddUpdateForgeCore()
@@ -61,6 +70,7 @@ internal static class Program
         }
         catch (EngineBusyException e) { return Fail(e.Message, ExitCodes.Busy); }
         catch (OperationCanceledException) { return Fail("Canceled.", ExitCodes.Error); }
+        catch (IOException e) { return Fail(e.Message, ExitCodes.Error); }
     }
 
     private static int Fail(string message, int code) { Console.Error.WriteLine(message); return code; }
@@ -146,7 +156,7 @@ internal static class Program
         };
 
         var progress = new Progress<EngineProgress>(p => { if (!json) Console.Error.WriteLine($"[{p.Index}/{p.Total}] {p.ApplicationName}: {p.State} - {p.Message}"); });
-        var results = await sp.GetRequiredService<UpdateEngine>().RunAsync(targets, policy, unattended: false, progress, ct, ct);
+        var results = await sp.GetRequiredService<UpdateEngine>().RunAsync(targets, policy, unattended: false, progress, ct, HardCancel.Token);
 
         if (json)
             Console.WriteLine(JsonSerializer.Serialize(results.Select(r => new { r.Application.Id, r.Application.Name, State = r.FinalState.ToString(), r.Message, ExitCode = r.Result?.ExitCode, VersionAfter = r.Result?.VersionAfter }), JsonOut));

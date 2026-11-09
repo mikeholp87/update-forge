@@ -66,7 +66,11 @@ public sealed class ScheduledTaskService : IScheduleService
                 def.Triggers.Add(new WeeklyTrigger { StartBoundary = start, DaysOfWeek = DaysOfTheWeek.Monday });
                 break;
             case ScanInterval.Custom:
-                def.Triggers.Add(Repeating(TimeSpan.FromHours(settings.CustomIntervalHours)));
+                // Task Scheduler rejects a repetition interval longer than its duration (one day), so intervals of a
+                // day or more use a day-interval trigger instead of repetition.
+                def.Triggers.Add(settings.CustomIntervalHours < 24
+                    ? Repeating(TimeSpan.FromHours(settings.CustomIntervalHours))
+                    : new DailyTrigger { StartBoundary = start, DaysInterval = (short)Math.Clamp(settings.CustomIntervalHours / 24, 1, 365) });
                 break;
             default:
                 def.Triggers.Add(new DailyTrigger { StartBoundary = start, DaysInterval = 1 });

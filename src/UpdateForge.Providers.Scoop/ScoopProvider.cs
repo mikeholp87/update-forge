@@ -84,15 +84,25 @@ public sealed partial class ScoopProvider : IUpdateProvider
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(_scoopScript) || !File.Exists(_powershell)) return ProviderAvailability.NotInstalled("Scoop is not installed.");
-        var r = await _runner.RunAsync(Spec(TimeSpan.FromSeconds(60), null, "--version"), cancellationToken).ConfigureAwait(false);
-        return r.ExitCode == 0 ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim(), null) : ProviderAvailability.Unavailable("Scoop did not respond.");
+        try
+        {
+            var r = await _runner.RunAsync(Spec(TimeSpan.FromSeconds(60), null, "--version"), cancellationToken).ConfigureAwait(false);
+            return r.ExitCode == 0 && !r.TimedOut ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim(), null) : ProviderAvailability.Unavailable("Scoop did not respond.");
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return ProviderAvailability.Unavailable("Scoop could not be started: " + ex.Message);
+        }
     }
 
     public async Task<IReadOnlyList<InstalledApplication>> DiscoverAsync(CancellationToken cancellationToken)
     {
         var export = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(2), null, "export"), cancellationToken).ConfigureAwait(false);
+        // A failed or timed-out query must surface as a provider problem, never as "everything is up to date".
+        if (export.TimedOut || export.ExitCode != 0) throw new InvalidOperationException(export.TimedOut ? "scoop export timed out." : $"scoop export failed (exit code {export.ExitCode}).");
         var apps = ScoopParsing.ParseExport(export.StdOut);
         var status = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(2), null, "status"), cancellationToken).ConfigureAwait(false);
+        if (status.TimedOut) throw new TimeoutException("scoop status timed out.");
         var latest = ScoopParsing.ParseStatusLatest(status.StdOut, apps.Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase));
 
         var now = DateTimeOffset.UtcNow;

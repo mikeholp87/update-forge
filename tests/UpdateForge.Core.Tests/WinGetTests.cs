@@ -117,6 +117,7 @@ public class WinGetValidationTests
     [InlineData("Mozilla.Firefox")]
     [InlineData("XP9KHM4BK9FZ7Q")]
     [InlineData("Microsoft.VisualStudioCode.Insiders")]
+    [InlineData("Notepad++.Notepad++")] // regression: '+' is legal in real WinGet ids
     public void Valid_ids_pass(string id) => Assert.Null(WinGetProvider.Validate(Req(id)));
 
     [Theory]
@@ -125,6 +126,8 @@ public class WinGetValidationTests
     [InlineData("Foo|bar")]
     [InlineData("Foo\"bar")]
     [InlineData("--force")]
+    [InlineData("+x")]
+    [InlineData("Foo+;calc")]
     [InlineData("-h")]
     [InlineData("..\\evil")]
     [InlineData("Foo Bar")]

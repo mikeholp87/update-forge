@@ -7,26 +7,39 @@ using UpdateForge.Infrastructure.Persistence;
 
 namespace UpdateForge.Infrastructure;
 
-/// <summary>Named mutex shared by every UpdateForge process of the same user session.</summary>
+/// <summary>
+/// Cross-process "one update run at a time" lock (GUI, CLI and scheduled task share it).
+/// A named semaphore, not a mutex: a Windows mutex must be released by the thread that acquired it, but the engine is
+/// async and resumes on a different thread, which made ReleaseMutex throw. If the holder process dies, the kernel object
+/// disappears with its last handle, so a crash cannot leave the lock stuck.
+/// </summary>
 public sealed class MutexEngineLock : IEngineLock
 {
-    private const string Name = @"Local\UpdateForge.UpdateEngine";
+    private const string Name = @"Local\UpdateForge.UpdateEngine.Semaphore";
+    private readonly string _name;
+
+    public MutexEngineLock() : this(Name) { }
+
+    public MutexEngineLock(string name) => _name = name;
 
     public IDisposable? TryAcquire()
     {
-        var m = new Mutex(false, Name);
-        try
-        {
-            if (m.WaitOne(0)) return new Releaser(m);
-        }
-        catch (AbandonedMutexException) { return new Releaser(m); } // previous holder crashed; we own it now
-        m.Dispose();
+        var s = new Semaphore(1, 1, _name);
+        if (s.WaitOne(0)) return new Releaser(s);
+        s.Dispose();
         return null;
     }
 
-    private sealed class Releaser(Mutex m) : IDisposable
+    private sealed class Releaser(Semaphore s) : IDisposable
     {
-        public void Dispose() { m.ReleaseMutex(); m.Dispose(); }
+        private int _released;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) != 0) return;
+            s.Release();
+            s.Dispose();
+        }
     }
 }
 

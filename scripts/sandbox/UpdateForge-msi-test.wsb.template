@@ -8,6 +8,6 @@
     <MappedFolder><HostFolder>__RESULTS__</HostFolder><SandboxFolder>C:\Results</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Scripts\run-msi-test.ps1</Command>
+    <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Scripts\__SCRIPT__</Command>
   </LogonCommand>
 </Configuration>

@@ -53,8 +53,8 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private string _search = "";
     [ObservableProperty] private AppRowViewModel? _selected;
     [ObservableProperty] private string _status = "Ready";
-    [ObservableProperty] private bool _isBusy;
-    [ObservableProperty] private bool _isUpdating;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isUpdating;
     [ObservableProperty] private double _overallProgress;
     [ObservableProperty] private bool _overallIndeterminate;
     [ObservableProperty] private int _installedCount;
@@ -66,6 +66,9 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private string _providerNotice = "";
     [ObservableProperty] private string _automaticText = "Automatic updates: off";
     [ObservableProperty] private string _restartNotice = "";
+
+    /// <summary>True when neither a scan nor an update run is in progress; scan/update buttons bind to this.</summary>
+    public bool IsIdle => !IsBusy && !IsUpdating;
 
     public event Action<string, string>? Notify;
 
@@ -91,7 +94,9 @@ public sealed partial class ShellViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ScanAsync()
+    private Task ScanAsync() => ScanCoreAsync(notify: true);
+
+    private async Task ScanCoreAsync(bool notify)
     {
         if (IsBusy || IsUpdating) return;
         IsBusy = true;
@@ -105,7 +110,7 @@ public sealed partial class ShellViewModel : ObservableObject
             var problems = result.Providers.Where(p => p.Availability.Health != ProviderHealth.NotInstalled && (!p.Availability.IsAvailable || p.Error is not null)).ToList();
             ProviderNotice = problems.Count == 0 ? "" : string.Join("  ", problems.Select(p => $"{p.ProviderId}: {p.Error ?? p.Availability.Message}"));
             Status = $"Scan complete: {result.Applications.Count} applications in {result.Duration.TotalSeconds:F1}s.";
-            if (UpdatesCount > 0 && _settings.NotifyNewUpdates) Notify?.Invoke("Updates available", $"{UpdatesCount} application update(s) can be installed.");
+            if (notify && UpdatesCount > 0 && _settings.NotifyNewUpdates) Notify?.Invoke("Updates available", $"{UpdatesCount} application update(s) can be installed.");
         }
         catch (Exception ex)
         {
@@ -148,6 +153,14 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     private Task UpdateCheckedAsync() => RunUpdatesAsync(Apps.Where(r => r.IsChecked).Select(r => r.App).ToList());
 
+    /// <summary>Updates exactly one application (the row's Update button). Same engine, policy and verification as Update all.</summary>
+    [RelayCommand]
+    private Task UpdateOneAsync(AppRowViewModel? row)
+    {
+        if (row is null || !row.CanUpdate) return Task.CompletedTask;
+        return RunUpdatesAsync([row.App]);
+    }
+
     [RelayCommand]
     private Task UpdateSelectedAsync() => Selected is null ? Task.CompletedTask : RunUpdatesAsync([Selected.App]);
 
@@ -156,7 +169,12 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private async Task RunUpdatesAsync(List<InstalledApplication> targets)
     {
-        if (IsUpdating || IsBusy || targets.Count == 0) return;
+        if (targets.Count == 0) { Status = "Nothing to update."; return; }
+        if (IsUpdating || IsBusy)
+        {
+            Status = "Another scan or update is in progress. Wait for it to finish, then try again.";
+            return;
+        }
         IsUpdating = true;
         RestartNotice = "";
         _failedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -166,19 +184,19 @@ public sealed partial class ShellViewModel : ObservableObject
         CurrentPage = PageId.Queue;
         _softCancel = new CancellationTokenSource();
 
-        var exclusions = await _exclusions.GetExcludedAsync(default);
-        var policy = new UpdatePolicySettings
-        {
-            Mode = _settings.Mode,
-            ExcludedApplicationIds = exclusions,
-            SkippedVersions = await _exclusions.GetSkippedVersionsAsync(default),
-            BlockedSources = new HashSet<string>(_settings.BlockedSources, StringComparer.OrdinalIgnoreCase),
-            EnabledProviders = new HashSet<string>(_settings.EnabledProviders, StringComparer.OrdinalIgnoreCase),
-        };
-
         var progress = new Progress<EngineProgress>(OnEngineProgress);
         try
         {
+            // Inside the try so a store failure can never leave IsUpdating stuck on (which would lock every button).
+            var policy = new UpdatePolicySettings
+            {
+                Mode = _settings.Mode,
+                ExcludedApplicationIds = await _exclusions.GetExcludedAsync(default),
+                SkippedVersions = await _exclusions.GetSkippedVersionsAsync(default),
+                BlockedSources = new HashSet<string>(_settings.BlockedSources, StringComparer.OrdinalIgnoreCase),
+                EnabledProviders = new HashSet<string>(_settings.EnabledProviders, StringComparer.OrdinalIgnoreCase),
+            };
+
             // Explicit user click: unattended=false. Cancel Pending is a soft cancel; running installers finish.
             var results = await Task.Run(() => _engine.RunAsync(targets, policy, false, progress, _softCancel.Token));
             _failedIds = results.Where(r => r.FinalState is JobState.Failed or JobState.Blocked).Select(r => r.Application.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -204,7 +222,7 @@ public sealed partial class ShellViewModel : ObservableObject
             _softCancel?.Dispose();
             _softCancel = null;
         }
-        await ScanAsync(); // cache invalidation: re-read real installed versions
+        await ScanCoreAsync(notify: false); // cache invalidation: re-read real installed versions (no "updates available" toast right after updating)
     }
 
     private void OnEngineProgress(EngineProgress p)

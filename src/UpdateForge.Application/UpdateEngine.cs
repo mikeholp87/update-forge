@@ -139,8 +139,7 @@ public sealed class UpdateEngine(
             default: finalState = JobState.Failed; break;
         }
 
-        if (state != finalState && JobStateMachine.CanTransition(state, finalState)) state = finalState;
-        else if (state != finalState) state = finalState; // terminal outcome recorded directly (e.g. Blocked from Installing)
+        // Terminal outcomes are recorded directly (e.g. Blocked straight from Installing), not forced through the state machine.
         await jobs.SetStateAsync(itemId, finalState, message, CancellationToken.None).ConfigureAwait(false);
         sw.Stop();
 

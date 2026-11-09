@@ -20,7 +20,7 @@
                         Icon="{ui:SymbolIcon Search24}" Margin="0,0,8,0" AutomationProperties.Name="Search applications" />
             <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" Margin="0,0,8,0" AutomationProperties.Name="Filter applications" />
             <ui:Button Grid.Column="2" Appearance="Primary" Content="Update checked" Icon="{ui:SymbolIcon ArrowDownload24}"
-                       Command="{Binding UpdateCheckedCommand}" AutomationProperties.Name="Update checked applications" />
+                       Command="{Binding UpdateCheckedCommand}" IsEnabled="{Binding IsIdle}" AutomationProperties.Name="Update checked applications" />
         </Grid>
 
         <Grid Grid.Row="2">
@@ -32,6 +32,21 @@
             <DataGrid Grid.Column="0" ItemsSource="{Binding AppsView}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutoGenerateColumns="False"
                       CanUserAddRows="False" CanUserSortColumns="True" HeadersVisibility="Column" GridLinesVisibility="None"
                       SelectionMode="Single" Margin="0,0,12,0" AutomationProperties.Name="Installed applications list">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <Setter Property="ContextMenu">
+                            <Setter.Value>
+                                <ContextMenu>
+                                    <MenuItem Header="Update"
+                                              Command="{Binding PlacementTarget.Tag.UpdateOneCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanUpdate}" />
+                                </ContextMenu>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridCheckBoxColumn Header="" Binding="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}" Width="36" SortMemberPath="IsChecked" />
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="2*" />
@@ -41,6 +56,18 @@
                     <DataGridTextColumn Header="Source" Binding="{Binding Source}" IsReadOnly="True" Width="*" />
                     <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" IsReadOnly="True" Width="*" />
                     <DataGridTextColumn Header="Last checked" Binding="{Binding LastChecked}" IsReadOnly="True" Width="*" />
+                    <DataGridTemplateColumn Header="" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ui:Button Content="Update" Appearance="Primary" Padding="12,3"
+                                           Command="{Binding DataContext.UpdateOneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           CommandParameter="{Binding}"
+                                           IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           Visibility="{Binding CanUpdate, Converter={StaticResource BoolToVisibility}}"
+                                           AutomationProperties.Name="{Binding Name, StringFormat='Update {0}'}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
 

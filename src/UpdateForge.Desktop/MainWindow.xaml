@@ -21,19 +21,19 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Margin="12,8,8,12" AutomationProperties.Name="Navigation">
-                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavDashboard}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Dashboard}"
                            Icon="{ui:SymbolIcon Home24}" Content="Dashboard" AutomationProperties.Name="Go to Dashboard" />
-                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavApplications}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Applications}"
                            Icon="{ui:SymbolIcon AppsList24}" Content="Installed applications" AutomationProperties.Name="Go to Installed applications" />
-                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavQueue}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Queue}"
                            Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update queue" AutomationProperties.Name="Go to Update queue" />
-                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavHistory}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.History}"
                            Icon="{ui:SymbolIcon History24}" Content="History" AutomationProperties.Name="Go to History" />
-                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent"
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavSettings}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Settings}"
                            Icon="{ui:SymbolIcon Settings24}" Content="Settings" AutomationProperties.Name="Go to Settings" />
             </StackPanel>

@@ -55,7 +55,7 @@ public sealed class ProcessRunner : IProcessRunner
         }
         catch (OperationCanceledException)
         {
-            try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+            try { process.Kill(entireProcessTree: true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { /* already exited, or not ours to kill */ }
             if (cancellationToken.IsCancellationRequested) throw;
             return new ProcessResult(-1, stdout.ToString(), stderr.ToString(), true);
         }

@@ -27,10 +27,26 @@ public partial class App : System.Windows.Application
     private MainWindow? _window;
     private FileSystemWatcher? _summaryWatcher;
     private AppSettings _settings = new();
+    private readonly object _summaryLock = new();
+    private DateTimeOffset _lastSummaryAt = DateTimeOffset.UtcNow; // ignore a summary left over from before this launch
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        try { await StartCoreAsync(e); }
+        catch (Exception ex)
+        {
+            // ShutdownMode is OnExplicitShutdown, so an unhandled startup failure (corrupt database, newer schema, ...)
+            // would otherwise leave an invisible zombie process holding the single-instance mutex.
+            System.Windows.MessageBox.Show("UpdateForge could not start: " + ex.Message, "UpdateForge", MessageBoxButton.OK, MessageBoxImage.Error);
+            Environment.ExitCode = 1;
+            _tray?.Dispose();
+            Shutdown(1);
+        }
+    }
+
+    private async Task StartCoreAsync(StartupEventArgs e)
+    {
 
         _single = new Mutex(true, MutexName, out var first);
         _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
@@ -78,8 +94,18 @@ public partial class App : System.Windows.Application
         _tray.SettingsRequested += () => Dispatcher.Invoke(() => { ShowWindow(); shell.NavigateCommand.Execute(PageId.Settings); });
         _tray.PauseToggled += async paused =>
         {
-            var s = await settingsStore.LoadAsync(default);
-            await settingsStore.SaveAsync(s with { AutomaticPaused = paused }, default);
+            try
+            {
+                var s = await settingsStore.LoadAsync(default);
+                if (s.AutomaticPaused == paused) return;
+                await settingsStore.SaveAsync(s with { AutomaticPaused = paused }, default);
+                _settings = _settings with { AutomaticPaused = paused };
+            }
+            catch (Exception ex)
+            {
+                // async void handler: an exception here would take the whole process down.
+                _services?.GetService<Microsoft.Extensions.Logging.ILogger<App>>()?.LogUnhandled(ex);
+            }
         };
         _tray.ExitRequested += () => Dispatcher.Invoke(ExitApplication);
         _tray.SetPaused(_settings.AutomaticPaused);
@@ -95,10 +121,16 @@ public partial class App : System.Windows.Application
 
         if (!_settings.MinimizeToTray || !e.Args.Contains("--minimized")) _window.Show();
 
-        _ = Task.Run(() =>
+        var showEvent = _showEvent;
+        new Thread(() =>
         {
-            while (_showEvent.WaitOne()) Dispatcher.Invoke(ShowWindow);
-        });
+            // Background thread: dies with the process instead of racing the dispatcher shutdown.
+            while (showEvent.WaitOne())
+            {
+                try { Dispatcher.Invoke(ShowWindow); }
+                catch (Exception ex) when (ex is TaskCanceledException or InvalidOperationException) { return; }
+            }
+        }) { IsBackground = true, Name = "UpdateForge show-window listener" }.Start();
 
         WatchBackgroundSummary();
         await shell.InitializeAsync();
@@ -139,6 +171,12 @@ public partial class App : System.Windows.Application
             Thread.Sleep(300);
             var s = JsonSerializer.Deserialize<BackgroundRunSummary>(File.ReadAllText(BackgroundRunner.SummaryPath));
             if (s is null) return;
+            // FileSystemWatcher raises several events per write; notify once per run.
+            lock (_summaryLock)
+            {
+                if (s.CompletedAt <= _lastSummaryAt) return;
+                _lastSummaryAt = s.CompletedAt;
+            }
             Dispatcher.Invoke(() =>
             {
                 if (s.Failed > 0 && _settings.NotifyFailed) _tray?.Notify("Updates failed", $"{s.Failed} scheduled update(s) failed. Open UpdateForge for details.");
@@ -148,11 +186,16 @@ public partial class App : System.Windows.Application
                 if (s.RestartRequired > 0 && _settings.NotifyRestart) _tray?.Notify("Restart required", "A restart is needed to finish some updates.");
             });
         }
-        catch (Exception ex) when (ex is IOException or JsonException) { /* file still being written; next change will retry */ }
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException or TaskCanceledException) { /* still being written, or app shutting down; next change will retry */ }
     }
 
     private void ExitApplication()
     {
+        // Exiting mid-install can leave a half-installed application, so ask first.
+        if (_services?.GetService<ShellViewModel>() is { IsUpdating: true } &&
+            System.Windows.MessageBox.Show("Updates are still installing. Exiting now may leave an application partially updated.\n\nExit anyway?",
+                "UpdateForge", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
         if (_window is not null) _window.AllowClose = true;
         _tray?.Dispose();
         _summaryWatcher?.Dispose();
