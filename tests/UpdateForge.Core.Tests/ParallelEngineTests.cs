@@ -8,7 +8,7 @@ using Xunit;
 namespace UpdateForge.Core.Tests;
 
 /// <summary>Provider that records how many updates were in flight at once.</summary>
-internal sealed class ConcurrencyProbeProvider(string id) : IUpdateProvider
+internal sealed class ConcurrencyProbeProvider(string id, int rendezvous = 1) : IUpdateProvider
 {
     private int _active;
     public int MaxActive;
@@ -22,7 +22,11 @@ internal sealed class ConcurrencyProbeProvider(string id) : IUpdateProvider
         var now = Interlocked.Increment(ref _active);
         int seen;
         while ((seen = MaxActive) < now && Interlocked.CompareExchange(ref MaxActive, now, seen) != seen) { }
-        await Task.Delay(150, CancellationToken.None);
+        // Hold the slot until `rendezvous` updates are in flight (or a generous timeout), so the observed maximum reflects the
+        // engine's limit rather than scheduler timing on a slow CI runner.
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (Volatile.Read(ref _active) < rendezvous && DateTime.UtcNow < deadline) await Task.Delay(10, CancellationToken.None);
+        await Task.Delay(50, CancellationToken.None);
         Interlocked.Decrement(ref _active);
         return new UpdateResult { Outcome = UpdateOutcome.Succeeded };
     }
@@ -43,7 +47,7 @@ public class ParallelEngineTests
     [Fact]
     public async Task Winget_updates_run_concurrently_up_to_the_limit_and_results_keep_order()
     {
-        var probe = new ConcurrencyProbeProvider("winget");
+        var probe = new ConcurrencyProbeProvider("winget", rendezvous: 3);
         var (engine, fx) = Build(probe);
         using (fx)
         {
