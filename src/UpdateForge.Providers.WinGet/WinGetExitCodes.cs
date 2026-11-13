@@ -25,6 +25,7 @@ public static class WinGetExitCodes
         return code switch
         {
             0 => R(UpdateOutcome.Succeeded, ErrorCategory.None, "Update installed."),
+            0x8A150061 => R(UpdateOutcome.NoChange, ErrorCategory.None, "Already installed."),
             0x8A15002B or 0x8A15004F => R(UpdateOutcome.NoChange, ErrorCategory.None, "WinGet found no applicable newer version."),
             0x8A150109 or 0x8A15010B => R(UpdateOutcome.RestartRequired, ErrorCategory.PendingRestart, "Update installed; a restart is required to finish.", true),
             0x8A15010A => R(UpdateOutcome.Failed, ErrorCategory.PendingRestart, "A restart is required before this update can be installed.", true),

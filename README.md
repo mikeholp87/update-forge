@@ -13,7 +13,8 @@ A free, open-source (MIT) software updater for Windows 11 and compatible Windows
 - **Update engine**: sequential queue, per-item state machine, post-install verification, restart detection, crash recovery (an interrupted install is never reported as success).
 - **Fluent WPF UI**: dashboard, installed applications, queue, history, settings; light/dark; tray icon.
 - **Scheduling**: a per-user Windows Task Scheduler task runs scans (and, if enabled, safe updates) even when the window is closed.
-- **CLI**: `updateforge-cli scan | list | outdated | update --all | update --id <id> | history | providers | doctor | schedule | diagnostics export` (`--json` supported).
+- **Export and bundles**: export the installed list (or just the updates) to CSV or JSON, from the app or with `updateforge-cli export`. `updateforge-cli bundle export <file>` saves your WinGet packages to a bundle; `bundle import <file>` shows what is missing and `--install` installs it. Bundles are untrusted input: ids, sources and versions are validated and nothing outside WinGet/msstore is ever run.
+- **CLI**: `updateforge-cli scan | list | outdated | update --all | update --id <id> | export | bundle export|import | history | providers | doctor | schedule | diagnostics export` (`--json` supported).
 - **Diagnostics**: redacted ZIP for bug reports.
 
 ## Requirements

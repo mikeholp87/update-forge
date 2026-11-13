@@ -22,6 +22,10 @@ public interface IUpdateProvider
 
     Task<UpdateResult> UpdateAsync(UpdateRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken);
 
+    /// <summary>Installs a package that is not installed yet. Providers that cannot do this keep the default.</summary>
+    Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken) =>
+        Task.FromResult(UpdateResult.Fail(ErrorCategory.NoApplicableInstaller, DisplayName + " cannot install new packages."));
+
     /// <summary>
     /// Re-reads the installed version of one application for post-installation verification.
     /// Returns null when the provider cannot verify (the engine then reports the update as unverified).

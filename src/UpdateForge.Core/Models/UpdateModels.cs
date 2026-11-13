@@ -15,6 +15,12 @@ public sealed record UpdateRequest(InstalledApplication Application, string? Tar
     public Guid CorrelationId { get; init; } = Guid.NewGuid();
 }
 
+/// <summary>A request to install a package that is not installed yet (used by bundle import). The provider re-validates every field.</summary>
+public sealed record InstallRequest(string PackageId, string Source, string? Version = null)
+{
+    public Guid CorrelationId { get; init; } = Guid.NewGuid();
+}
+
 public sealed record UpdateProgress(string Message, double? Fraction = null, string Phase = "Installing");
 
 public sealed record UpdateResult

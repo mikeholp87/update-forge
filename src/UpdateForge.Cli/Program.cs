@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using UpdateForge.Application;
 using UpdateForge.Background;
+using UpdateForge.Core.Bundles;
+using UpdateForge.Core.Export;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Providers;
 using UpdateForge.Core.Updates;
@@ -59,6 +61,8 @@ internal static class Program
                 "list" => await List(services, json, cts.Token),
                 "outdated" => await Scan(services, json, outdatedOnly: true, cts.Token),
                 "update" => await Update(services, rest[1..], json, cts.Token),
+                "export" => await Export(services, rest[1..], json, cts.Token),
+                "bundle" => await Bundle(services, rest[1..], json, cts.Token, HardCancel.Token),
                 "history" => await History(services, json, cts.Token),
                 "providers" => await Providers(services, json, cts.Token),
                 "doctor" => await Doctor(services, json, cts.Token),
@@ -83,6 +87,11 @@ internal static class Program
           updateforge outdated              Scan and show only applications with updates
           updateforge update --all          Update everything the policy allows
           updateforge update --id <id>      Update one application by its UpdateForge id or package id
+          updateforge export [--updates] [--format csv|json] [--scan] [<file>]
+                                            Export installed apps (or only those with updates); CSV by default, stdout if no file
+          updateforge bundle export <file>  Save your WinGet packages to a bundle file
+          updateforge bundle import <file> [--install] [--exact-versions]
+                                            Show what a bundle would install; --install installs the missing packages
           updateforge history               Show update history
           updateforge providers             Show provider availability
           updateforge doctor                Check the environment
@@ -195,6 +204,86 @@ internal static class Program
             default:
                 return Fail("Usage: updateforge schedule [status|apply|remove]", ExitCodes.Usage);
         }
+    }
+
+    private static async Task<IReadOnlyList<InstalledApplication>> LoadInventory(ServiceProvider sp, bool forceScan, CancellationToken ct)
+    {
+        var cached = forceScan ? [] : await sp.GetRequiredService<IInventoryStore>().LoadSnapshotAsync(ct);
+        if (cached.Count > 0) return cached;
+        var settings = await sp.GetRequiredService<ISettingsStore>().LoadAsync(ct);
+        Console.Error.WriteLine("Scanning installed software…");
+        return (await sp.GetRequiredService<InventoryService>().ScanAsync(settings, null, ct)).Applications;
+    }
+
+    private static string? ValueOf(string[] args, string name)
+    {
+        var i = Array.IndexOf(args, name);
+        return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
+    }
+
+    private static string? PositionalPath(string[] args, params string[] optionsWithValue)
+    {
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (args[i].StartsWith("--", StringComparison.Ordinal)) { if (optionsWithValue.Contains(args[i])) i++; continue; }
+            return args[i];
+        }
+        return null;
+    }
+
+    private static async Task<int> Export(ServiceProvider sp, string[] args, bool jsonFlag, CancellationToken ct)
+    {
+        var format = ValueOf(args, "--format") ?? (jsonFlag ? "json" : "csv");
+        if (format is not ("csv" or "json")) return Fail("--format must be csv or json.", ExitCodes.Usage);
+        var path = PositionalPath(args, "--format");
+        var apps = (await LoadInventory(sp, args.Contains("--scan"), ct)).Where(a => !args.Contains("--updates") || a.UpdateAvailable).ToList();
+
+        var text = format == "csv"
+            ? CsvExporter.Applications(apps)
+            : JsonSerializer.Serialize(apps.Select(a => new { a.Name, a.Publisher, Installed = a.InstalledVersion, Available = a.AvailableVersion, Source = a.PackageSource, a.PackageId, Provider = a.ProviderId, Status = a.Status.ToString(), Support = a.Support.ToString(), a.IsPinned, a.IsExcluded, a.Note }), JsonOut);
+        if (path is null) { Console.Write(text); return ExitCodes.Ok; }
+        if (format == "csv") CsvExporter.WriteFile(path, text); else await File.WriteAllTextAsync(path, text, ct);
+        Console.Error.WriteLine($"Exported {apps.Count} applications to {path}.");
+        return ExitCodes.Ok;
+    }
+
+    private static async Task<int> Bundle(ServiceProvider sp, string[] args, bool json, CancellationToken ct, CancellationToken hardCancel)
+    {
+        var sub = args.Length > 0 ? args[0] : "";
+        var path = PositionalPath(args[(args.Length > 0 ? 1 : 0)..]);
+        if (sub is not ("export" or "import") || path is null) return Fail("Usage: updateforge bundle export <file> | bundle import <file> [--install] [--exact-versions]", ExitCodes.Usage);
+
+        if (sub == "export")
+        {
+            var bundle = BundleService.CreateBundle(await LoadInventory(sp, args.Contains("--scan"), ct));
+            await File.WriteAllTextAsync(path, PackageBundleFormat.Serialize(bundle), ct);
+            Console.Error.WriteLine($"Saved {bundle.Packages.Count} WinGet packages to {path}.");
+            return ExitCodes.Ok;
+        }
+
+        if (!File.Exists(path)) return Fail($"File not found: {path}", ExitCodes.Usage);
+        if (new FileInfo(path).Length > PackageBundleFormat.MaxBytes) return Fail("The bundle file is too large; refusing to read it.", ExitCodes.Usage);
+        var parsed = PackageBundleFormat.Parse(await File.ReadAllTextAsync(path, ct));
+        if (!parsed.Ok) return Fail(parsed.Error!, ExitCodes.Usage);
+        foreach (var r in parsed.Rejected) Console.Error.WriteLine("! Ignored: " + r);
+
+        var svc = sp.GetRequiredService<BundleService>();
+        var plan = BundleService.Plan(parsed.Bundle!, await LoadInventory(sp, forceScan: true, ct));
+        if (!args.Contains("--install"))
+        {
+            if (json) Console.WriteLine(JsonSerializer.Serialize(new { ToInstall = plan.ToInstall, AlreadyInstalled = plan.AlreadyInstalled.Select(p => p.Id), Ignored = parsed.Rejected }, JsonOut));
+            else
+            {
+                Console.WriteLine($"{plan.ToInstall.Count} to install, {plan.AlreadyInstalled.Count} already installed. Nothing was installed; add --install to install the missing packages.");
+                foreach (var p in plan.ToInstall) Console.WriteLine($"  + {p.Id} ({p.Source}){(p.Version is null ? "" : " " + p.Version)}");
+            }
+            return ExitCodes.Ok;
+        }
+
+        var results = await svc.InstallMissingAsync(plan, args.Contains("--exact-versions"), new Progress<string>(m => { if (!json) Console.Error.WriteLine(m); }), ct, hardCancel);
+        if (json) Console.WriteLine(JsonSerializer.Serialize(results.Select(r => new { r.Package.Id, State = r.State.ToString(), r.Message }), JsonOut));
+        else foreach (var r in results) Console.WriteLine($"{r.Package.Name ?? r.Package.Id}: {r.State} - {r.Message}");
+        return results.Any(r => r.State is JobState.Failed or JobState.Blocked) ? ExitCodes.SomeFailed : ExitCodes.Ok;
     }
 
     private static async Task<int> ExportDiagnostics(ServiceProvider sp, string? path, CancellationToken ct)

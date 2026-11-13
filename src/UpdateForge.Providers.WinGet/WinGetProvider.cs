@@ -184,6 +184,38 @@ public sealed partial class WinGetProvider : IUpdateProvider
         }
     }
 
+    public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
+    {
+        // The request may come from an imported bundle (untrusted), so it is validated exactly like an update request.
+        if (!PackageIdPattern().IsMatch(request.PackageId ?? ""))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Package identifier failed validation; refusing to run.");
+        if (!AllowedSources.Contains(request.Source ?? "", StringComparer.OrdinalIgnoreCase))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Package source is not an approved source; refusing to run.");
+        if (request.Version is { } v && !VersionPattern().IsMatch(v))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Target version failed validation; refusing to run.");
+
+        var args = new List<string>
+        {
+            "install", "--id", request.PackageId!, "--exact", "--source", request.Source!.ToLowerInvariant(),
+            "--silent", "--accept-package-agreements", "--accept-source-agreements", "--disable-interactivity",
+        };
+        if (request.Version is { Length: > 0 } tv) { args.Add("--version"); args.Add(tv); }
+
+        _log.LogInformation("Installing {PackageId} via WinGet (correlation {Correlation})", request.PackageId, request.CorrelationId);
+        progress.Report(new UpdateProgress("Starting WinGet…", null, "Installing"));
+        try
+        {
+            var r = await _runner.RunAsync(new ProcessSpec(_exe, args, InstallTimeout, line => ReportLine(line, progress)), cancellationToken).ConfigureAwait(false);
+            if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "The installer timed out and was stopped.");
+            var result = WinGetExitCodes.Map(r.ExitCode, Tail(r.StdOut), _isElevated());
+            return result.Outcome == UpdateOutcome.Succeeded ? result with { Message = "Installed." } : result;
+        }
+        catch (OperationCanceledException)
+        {
+            return new UpdateResult { Outcome = UpdateOutcome.Canceled, Error = ErrorCategory.Canceled, Message = "Canceled." };
+        }
+    }
+
     public async Task<string?> GetInstalledVersionAsync(InstalledApplication application, CancellationToken cancellationToken)
     {
         var probe = new UpdateRequest(application);

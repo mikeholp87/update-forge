@@ -15,11 +15,25 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="200" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ui:TextBox Grid.Column="0" PlaceholderText="Search applications" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
                         Icon="{ui:SymbolIcon Search24}" Margin="0,0,8,0" AutomationProperties.Name="Search applications" />
             <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" Margin="0,0,8,0" AutomationProperties.Name="Filter applications" />
-            <ui:Button Grid.Column="2" Appearance="Primary" Content="Update checked" Icon="{ui:SymbolIcon ArrowDownload24}"
+            <ui:DropDownButton Grid.Column="2" Content="Export / import" Icon="{ui:SymbolIcon ArrowSwap24}" Margin="0,0,8,0"
+                               Tag="{Binding}" IsEnabled="{Binding IsIdle}" AutomationProperties.Name="Export and import">
+                <ui:DropDownButton.Flyout>
+                    <ContextMenu>
+                        <MenuItem Header="Export this list to CSV…" AutomationProperties.Name="Export this list to CSV"
+                                  Command="{Binding PlacementTarget.Tag.ExportCsvCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Header="Export package bundle…" AutomationProperties.Name="Export package bundle"
+                                  Command="{Binding PlacementTarget.Tag.ExportBundleCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Header="Import package bundle…" AutomationProperties.Name="Import package bundle"
+                                  Command="{Binding PlacementTarget.Tag.ImportBundleCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </ui:DropDownButton.Flyout>
+            </ui:DropDownButton>
+            <ui:Button Grid.Column="3" Appearance="Primary" Content="Update checked" Icon="{ui:SymbolIcon ArrowDownload24}"
                        Command="{Binding UpdateCheckedCommand}" IsEnabled="{Binding IsIdle}" AutomationProperties.Name="Update checked applications" />
         </Grid>
 

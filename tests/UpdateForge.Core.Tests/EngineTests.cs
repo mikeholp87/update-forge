@@ -26,6 +26,13 @@ internal sealed class FakeProvider(string id = "fake") : IUpdateProvider
         Updated.Add(r.Application.Id);
         return Task.FromResult(OnUpdate(r));
     }
+    public Func<InstallRequest, UpdateResult> OnInstall { get; set; } = _ => new UpdateResult { Outcome = UpdateOutcome.Succeeded, Message = "Installed." };
+    public List<InstallRequest> Installs { get; } = [];
+    public Task<UpdateResult> InstallAsync(InstallRequest r, IProgress<UpdateProgress> p, CancellationToken ct)
+    {
+        Installs.Add(r);
+        return Task.FromResult(OnInstall(r));
+    }
     public Task<string?> GetInstalledVersionAsync(InstalledApplication a, CancellationToken ct) => Task.FromResult(VersionAfter);
 }
 

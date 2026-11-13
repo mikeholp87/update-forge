@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using UpdateForge.Application;
+using UpdateForge.Core.Bundles;
+using UpdateForge.Core.Export;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Updates;
 
@@ -22,6 +24,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IInventoryStore _inventoryStore;
     private readonly IScanHistoryStore _scanHistory;
     private readonly IHistoryStore _history;
+    private readonly BundleService _bundles;
     private readonly ILogger<ShellViewModel> _log;
     private CancellationTokenSource? _softCancel;
     private HashSet<string> _failedIds = new(StringComparer.OrdinalIgnoreCase);
@@ -29,8 +32,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ShellViewModel(InventoryService inventory, UpdateEngine engine, ISettingsStore settingsStore, IExclusionStore exclusions,
         IInventoryStore inventoryStore, IScanHistoryStore scanHistory, IHistoryStore history, HistoryViewModel historyVm, SettingsViewModel settingsVm,
-        ILogger<ShellViewModel> log)
+        BundleService bundles, ILogger<ShellViewModel> log)
     {
+        _bundles = bundles;
         _inventory = inventory; _engine = engine; _settingsStore = settingsStore; _exclusions = exclusions;
         _inventoryStore = inventoryStore; _scanHistory = scanHistory; _history = history; _log = log;
         HistoryPage = historyVm;
@@ -267,6 +271,67 @@ public sealed partial class ShellViewModel : ObservableObject
             await _exclusions.AddSkippedVersionAsync(app.Id, v, default);
             Status = $"Version {v} of {app.Name} will be skipped. A newer version will still be offered.";
         }
+    }
+
+    /// <summary>Exports exactly what the Installed applications list is showing (respecting the search and filter) as CSV.</summary>
+    [RelayCommand]
+    private void ExportCsv()
+    {
+        var rows = AppsView.Cast<AppRowViewModel>().Select(r => r.App).ToList();
+        var dlg = new Microsoft.Win32.SaveFileDialog { Title = "Export applications", Filter = "CSV file (*.csv)|*.csv", FileName = $"updateforge-apps-{DateTime.Now:yyyyMMdd}.csv" };
+        if (dlg.ShowDialog() != true) return;
+        try { CsvExporter.WriteFile(dlg.FileName, CsvExporter.Applications(rows)); Status = $"Exported {rows.Count} applications to {dlg.FileName}."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Status = "Could not write the file: " + ex.Message; }
+    }
+
+    [RelayCommand]
+    private void ExportBundle()
+    {
+        var bundle = BundleService.CreateBundle(Apps.Select(r => r.App));
+        var dlg = new Microsoft.Win32.SaveFileDialog { Title = "Export package bundle", Filter = "UpdateForge bundle (*.ufbundle.json)|*.ufbundle.json|JSON (*.json)|*.json", FileName = $"my-setup-{DateTime.Now:yyyyMMdd}.ufbundle.json" };
+        if (dlg.ShowDialog() != true) return;
+        try { File.WriteAllText(dlg.FileName, PackageBundleFormat.Serialize(bundle)); Status = $"Saved {bundle.Packages.Count} WinGet packages to {dlg.FileName}. Import it on another PC to reinstall them."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Status = "Could not write the file: " + ex.Message; }
+    }
+
+    [RelayCommand]
+    private async Task ImportBundleAsync()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Import package bundle", Filter = "UpdateForge bundle (*.json)|*.json|All files (*.*)|*.*" };
+        if (dlg.ShowDialog() != true) return;
+        if (new FileInfo(dlg.FileName).Length > PackageBundleFormat.MaxBytes) { Status = "That file is too large to be a bundle."; return; }
+
+        var parsed = PackageBundleFormat.Parse(await File.ReadAllTextAsync(dlg.FileName));
+        if (!parsed.Ok) { Status = parsed.Error!; return; }
+        var plan = BundleService.Plan(parsed.Bundle!, Apps.Select(r => r.App));
+        if (plan.ToInstall.Count == 0)
+        {
+            Status = $"Nothing to install: all {plan.AlreadyInstalled.Count} packages in the bundle are already installed.";
+            return;
+        }
+
+        var preview = string.Join("\n", plan.ToInstall.Take(12).Select(p => "  • " + (p.Name ?? p.Id))) + (plan.ToInstall.Count > 12 ? $"\n  … and {plan.ToInstall.Count - 12} more" : "");
+        var ignored = parsed.Rejected.Count > 0 ? $"\n\n{parsed.Rejected.Count} invalid entries in the file will be ignored." : "";
+        var answer = System.Windows.MessageBox.Show(
+            $"Install {plan.ToInstall.Count} packages from this bundle?\n\n{preview}{ignored}\n\n{plan.AlreadyInstalled.Count} are already installed and will be left alone. Only the packages listed here are installed, one at a time, through WinGet.",
+            "Import package bundle", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+        if (answer != System.Windows.MessageBoxResult.Yes) return;
+
+        IsUpdating = true;
+        _softCancel = new CancellationTokenSource();
+        try
+        {
+            var results = await Task.Run(() => _bundles.InstallMissingAsync(plan, false, new Progress<string>(m => Status = m), _softCancel.Token));
+            var ok = results.Count(r => r.State is JobState.Completed or JobState.RestartRequired);
+            var failed = results.Count(r => r.State is JobState.Failed or JobState.Blocked);
+            Status = $"Bundle import finished: {ok} installed, {failed} failed, {results.Count - ok - failed} skipped. See History for details.";
+            if (_settings.NotifyCompleted) Notify?.Invoke("Bundle import finished", Status);
+            await ScanCoreAsync(notify: false);
+            await RefreshMetaAsync();
+        }
+        catch (EngineBusyException) { Status = "Another UpdateForge update run is already in progress."; }
+        catch (Exception ex) { _log.LogError(ex, "Bundle import failed"); Status = "Bundle import failed: " + ex.Message; }
+        finally { IsUpdating = false; _softCancel?.Dispose(); _softCancel = null; }
     }
 
     [RelayCommand]
