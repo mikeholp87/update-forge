@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Text.Json;
@@ -58,6 +59,59 @@ public static class NpmParsing
                 && !string.IsNullOrWhiteSpace(l.GetString())) latest[p.Name] = l.GetString()!;
         }
         return latest;
+    }
+
+    /// <summary>Parses <c>npm view &lt;name&gt; --json</c>.</summary>
+    public static PackageDetails ParseView(string json)
+    {
+        using var doc = ParseJson(json, '{') ?? throw new InvalidOperationException("npm did not return package details.");
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("npm did not return package details.");
+        var fields = new List<PackageDetailField>();
+        void Add(string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) fields.Add(new(name, value)); }
+
+        var version = root.TryGetProperty("dist-tags", out var tags) && tags.ValueKind == JsonValueKind.Object ? Text(tags, "latest") : null;
+        version ??= Text(root, "version");
+        Add("Description", Text(root, "description"));
+        Add("Latest version", version);
+        Add("Homepage", Text(root, "homepage"));
+        Add("License", Text(root, "license"));
+        Add("Author", Text(root, "author"));
+        var repository = Text(root, "repository");
+        Add("Repository", repository?.StartsWith("git+", StringComparison.OrdinalIgnoreCase) == true ? repository[4..] : repository);
+        Add("Issues", Text(root, "bugs"));
+        Add("Keywords", Text(root, "keywords"));
+        if (version is not null && root.TryGetProperty("time", out var time) && time.ValueKind == JsonValueKind.Object
+            && Text(time, version) is { } published
+            && DateTimeOffset.TryParse(published, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var when))
+            Add("Published", when.ToLocalTime().ToString("d", CultureInfo.CurrentCulture));
+        Add("Maintainers", Text(root, "maintainers"));
+        if (root.TryGetProperty("dependencies", out var deps) && deps.ValueKind == JsonValueKind.Object)
+            Add("Dependencies", deps.EnumerateObject().Count().ToString(CultureInfo.InvariantCulture));
+        Add("Node.js", root.TryGetProperty("engines", out var engines) && engines.ValueKind == JsonValueKind.Object ? Text(engines, "node") : null);
+        return PackageDetails.From(fields);
+    }
+
+    /// <summary>Reads a string, a person/repository object (name or url), or an array of either.</summary>
+    private static string? Text(JsonElement e, string name)
+    {
+        if (!e.TryGetProperty(name, out var v)) return null;
+        return v.ValueKind switch
+        {
+            JsonValueKind.String => v.GetString(),
+            JsonValueKind.Object => ObjectText(v),
+            JsonValueKind.Array => string.Join(", ", v.EnumerateArray()
+                .Select(x => x.ValueKind == JsonValueKind.String ? x.GetString() : x.ValueKind == JsonValueKind.Object ? ObjectText(x) : null)
+                .Where(x => !string.IsNullOrWhiteSpace(x))),
+            _ => null,
+        };
+    }
+
+    private static string? ObjectText(JsonElement o)
+    {
+        foreach (var key in (string[])["name", "url", "type"])
+            if (o.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(p.GetString())) return p.GetString();
+        return null;
     }
 
     /// <summary>Parses <c>npm search --json</c>. Names that do not look like valid package names are dropped.</summary>
@@ -269,5 +323,13 @@ public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPac
         var r = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(2), null, "search", query, "--json", "--searchlimit=40"), cancellationToken).ConfigureAwait(false);
         PackageManagerOutput.RequireSuccess(r, "Search npm packages");
         return NpmParsing.ParseSearch(r.StdOut, IsValidName);
+    }
+
+    public async Task<PackageDetails?> GetPackageDetailsAsync(PackageSearchResult package, CancellationToken cancellationToken)
+    {
+        if (!IsValidName(package.PackageId)) throw new ArgumentException("npm package name failed validation.", nameof(package));
+        var r = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(1), null, "view", package.PackageId, "--json"), cancellationToken).ConfigureAwait(false);
+        PackageManagerOutput.RequireSuccess(r, "Read npm package details");
+        return NpmParsing.ParseView(r.StdOut);
     }
 }

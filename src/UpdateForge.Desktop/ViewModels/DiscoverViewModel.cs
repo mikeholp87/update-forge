@@ -139,6 +139,10 @@ public sealed partial class DiscoverViewModel(PackageSearchService service, Pack
         }
     }
 
+    /// <summary>Builds the details dialog's view model; details are read from the manager that found the row.</summary>
+    public PackageDetailsViewModel CreateDetails(DiscoveredPackageRow row) =>
+        new(row, service.GetDetailsAsync, () => !InstallRunning);
+
     /// <summary>Marks rows as installed or not after the inventory changed (for example after a rescan).</summary>
     public void RefreshInstalledState()
     {

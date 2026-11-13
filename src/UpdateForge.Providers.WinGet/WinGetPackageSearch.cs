@@ -27,6 +27,23 @@ public sealed partial class WinGetProvider : IPackageSearchProvider
         return ParsePackageSearch(result.StdOut);
     }
 
+    public async Task<PackageDetails?> GetPackageDetailsAsync(PackageSearchResult package, CancellationToken cancellationToken)
+    {
+        // The ID and source come from search output (remote metadata), so both are validated before they reach a command line.
+        if (!PackageIdPattern().IsMatch(package.PackageId))
+            throw new ArgumentException("Package identifier failed validation.", nameof(package));
+        if (package.Source is { } source && !SourceNamePattern().IsMatch(source))
+            throw new ArgumentException("Package source name failed validation.", nameof(package));
+        List<string> args = ["show", "--id", package.PackageId, "--exact"];
+        if (package.Source is { } s) { args.Add("--source"); args.Add(s); }
+        var result = await _runner.RunAsync(new ProcessSpec(_exe, [.. args, .. CommonFlags], ScanTimeout), cancellationToken).ConfigureAwait(false);
+        PackageManagerOutput.RequireSuccess(result, "Read WinGet package details");
+        return PackageDetails.From(PackageDetailsText.Parse(result.StdOut, ["Description", "Release Notes"]));
+    }
+
+    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._\-]{0,63}$", RegexOptions.CultureInvariant)]
+    private static partial Regex SourceNamePattern();
+
     /// <summary>Uses column positions, never localized column names or installed-package IDs.</summary>
     public static IReadOnlyList<PackageSearchResult> ParsePackageSearch(string output)
     {

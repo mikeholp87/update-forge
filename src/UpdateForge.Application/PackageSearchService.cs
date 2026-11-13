@@ -17,7 +17,35 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
     private readonly Dictionary<(string Provider, string Query), CachedSearch> _searches = [];
     private readonly Dictionary<string, CachedAvailability> _availability = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, long> _generations = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<(string Provider, string Package, string Source), CachedDetails> _details = [];
     private const int MaxCachedQueries = 32;
+    private const int MaxCachedDetails = 64;
+
+    /// <summary>Reads catalog details for one search result from the manager that found it.</summary>
+    /// <returns>Null when that manager cannot describe packages.</returns>
+    public async Task<PackageDetails?> GetDetailsAsync(PackageSearchResult package, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        var provider = registry.All.FirstOrDefault(p => p.Id.Equals(package.ProviderId, StringComparison.OrdinalIgnoreCase)) as IPackageSearchProvider
+            ?? throw new InvalidOperationException($"No package manager named “{package.ProviderId}” is available.");
+        var key = (provider.Id.ToUpperInvariant(), package.PackageId.ToUpperInvariant(), package.Source?.ToUpperInvariant() ?? "");
+        long generation;
+        lock (_cacheLock)
+        {
+            generation = _generations.GetValueOrDefault(provider.Id);
+            if (_details.TryGetValue(key, out var cached) && cached.ExpiresAt > _clock.GetUtcNow()) return cached.Value;
+        }
+        var details = await provider.GetPackageDetailsAsync(package, ct).ConfigureAwait(false);
+        lock (_cacheLock)
+        {
+            if (details is not null && generation == _generations.GetValueOrDefault(provider.Id))
+            {
+                if (_details.Count >= MaxCachedDetails) _details.Remove(_details.MinBy(p => p.Value.ExpiresAt).Key);
+                _details[key] = new(details, _clock.GetUtcNow().AddMinutes(10));
+            }
+        }
+        return details;
+    }
 
     public async Task<PackageSearchResponse> SearchAsync(string query, CancellationToken ct, bool refresh = false)
     {
@@ -59,12 +87,14 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
             if (providerId is null)
             {
                 foreach (var provider in registry.All) _generations[provider.Id] = _generations.GetValueOrDefault(provider.Id) + 1;
-                _searches.Clear(); _availability.Clear(); return;
+                _searches.Clear(); _availability.Clear(); _details.Clear(); return;
             }
             _generations[providerId] = _generations.GetValueOrDefault(providerId) + 1;
             foreach (var key in _searches.Keys.Where(k => k.Provider.Equals(providerId, StringComparison.OrdinalIgnoreCase)).ToList())
                 _searches.Remove(key);
             _availability.Remove(providerId);
+            foreach (var key in _details.Keys.Where(k => k.Provider.Equals(providerId, StringComparison.OrdinalIgnoreCase)).ToList())
+                _details.Remove(key);
         }
     }
 
@@ -145,5 +175,6 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.ProviderId).ThenBy(p => p.Source).ToList();
 
     private sealed record CachedSearch(PackageSearchProviderResult Result, DateTimeOffset ExpiresAt);
+    private sealed record CachedDetails(PackageDetails Value, DateTimeOffset ExpiresAt);
     private sealed record CachedAvailability(ProviderAvailability Value, DateTimeOffset ExpiresAt);
 }

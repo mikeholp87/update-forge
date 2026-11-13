@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
         <StackPanel>
             <TextBlock Style="{StaticResource PageTitle}" Text="Discover packages" />
-            <TextBlock Text="Search available packages from all enabled managers and their configured sources."
+            <TextBlock Text="Search available packages from all enabled managers and their configured sources. Double-click a package to see more details."
                        TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,16,0,12">
@@ -53,9 +53,16 @@
         <TextBlock Grid.Row="3" Text="{Binding ProviderNotice}" TextWrapping="Wrap" Margin="0,0,0,12"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                    Visibility="{Binding ProviderNotice, Converter={StaticResource StringToVisibility}}" />
-        <DataGrid Grid.Row="4" ItemsSource="{Binding Packages}" AutoGenerateColumns="False" IsReadOnly="True"
+        <DataGrid x:Name="PackagesGrid" Grid.Row="4" ItemsSource="{Binding Packages}" AutoGenerateColumns="False" IsReadOnly="True"
                   CanUserAddRows="False" CanUserSortColumns="True" HeadersVisibility="Column" GridLinesVisibility="None"
-                  SelectionMode="Single" EnableRowVirtualization="True" AutomationProperties.Name="Discovered packages">
+                  SelectionMode="Single" EnableRowVirtualization="True" AutomationProperties.Name="Discovered packages"
+                  AutomationProperties.HelpText="Double-click a package or press Enter to see more details."
+                  MouseDoubleClick="Packages_MouseDoubleClick" PreviewKeyDown="Packages_KeyDown">
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Show details" Click="ShowDetails_Click" />
+                </ContextMenu>
+            </DataGrid.ContextMenu>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
                 <DataGridTextColumn Header="Package ID" Binding="{Binding PackageId}" Width="2*" />
@@ -63,7 +70,7 @@
                 <DataGridTextColumn Header="Manager" Binding="{Binding Manager}" Width="*" />
                 <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*" />
                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" />
-                <DataGridTemplateColumn Header="" Width="Auto">
+                <DataGridTemplateColumn Header="" Width="Auto" MinWidth="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <ui:Button Content="Install" Appearance="Primary" Padding="12,3"

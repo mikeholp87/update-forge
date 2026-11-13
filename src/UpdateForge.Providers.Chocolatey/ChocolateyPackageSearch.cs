@@ -25,4 +25,24 @@ public sealed partial class ChocolateyProvider : IPackageSearchProvider
             .Where(p => IdPattern().IsMatch(p.Id) && !string.IsNullOrWhiteSpace(p.Version))
             .Select(p => new PackageSearchResult(ProviderKey, p.Id, p.Id, p.Version, null))];
     }
+
+    public async Task<PackageDetails?> GetPackageDetailsAsync(PackageSearchResult package, CancellationToken cancellationToken)
+    {
+        if (!IdPattern().IsMatch(package.PackageId))
+            throw new ArgumentException("Chocolatey package ID failed validation.", nameof(package));
+        var result = await _runner.RunAsync(new ProcessSpec(_exe,
+            ["info", package.PackageId, "--no-color"], TimeSpan.FromMinutes(2)), cancellationToken).ConfigureAwait(false);
+        PackageManagerOutput.RequireSuccess(result, "Read Chocolatey package details");
+        return ParsePackageDetails(result.StdOut);
+    }
+
+    public static PackageDetails ParsePackageDetails(string output)
+    {
+        // Drop the trailing "N packages found." summary so it is not appended to the last multi-line field.
+        var lines = output.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
+            .Where(l => !l.TrimEnd().EndsWith(" packages found.", StringComparison.OrdinalIgnoreCase)
+                && !l.TrimEnd().EndsWith(" package found.", StringComparison.OrdinalIgnoreCase));
+        var fields = PackageDetailsText.Parse(string.Join('\n', lines), ["Description", "Release Notes", "Summary"], splitPipes: true);
+        return PackageDetails.From(fields);
+    }
 }

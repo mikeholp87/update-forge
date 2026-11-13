@@ -34,6 +34,19 @@ public sealed partial class ScoopProvider : IPackageSearchProvider
         return ParsePackageSearch(result.StdOut);
     }
 
+    public async Task<PackageDetails?> GetPackageDetailsAsync(PackageSearchResult package, CancellationToken cancellationToken)
+    {
+        // The name and bucket come from search output (remote metadata), so both are validated before they reach a command line.
+        if (!NamePattern().IsMatch(package.PackageId))
+            throw new ArgumentException("Scoop package name failed validation.", nameof(package));
+        if (package.Source is { } bucket && !NamePattern().IsMatch(bucket))
+            throw new ArgumentException("Scoop bucket name failed validation.", nameof(package));
+        var target = package.Source is { } b ? $"{b}/{package.PackageId}" : package.PackageId;
+        var result = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(1), null, "info", target), cancellationToken).ConfigureAwait(false);
+        PackageManagerOutput.RequireSuccess(result, "Read Scoop package details");
+        return PackageDetails.From(PackageDetailsText.Parse(result.StdOut));
+    }
+
     public static IReadOnlyList<PackageSearchResult> ParsePackageSearch(string output)
     {
         var packages = new List<PackageSearchResult>();
