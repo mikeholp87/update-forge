@@ -10,6 +10,7 @@ using UpdateForge.Core.Updates;
 using UpdateForge.Infrastructure;
 using UpdateForge.Providers.Windows;
 using UpdateForge.Providers.Chocolatey;
+using UpdateForge.Providers.Npm;
 using UpdateForge.Providers.Scoop;
 using UpdateForge.Providers.WinGet;
 
@@ -49,6 +50,7 @@ internal static class Program
             .AddSingleton<IUpdateProvider, MicrosoftStoreProvider>()
             .AddSingleton<IUpdateProvider, ScoopProvider>()
             .AddSingleton<IUpdateProvider, ChocolateyProvider>()
+            .AddSingleton<IUpdateProvider, NpmProvider>()
             .AddSingleton<IScheduleService, ScheduledTaskService>()
             .AddSingleton<BackgroundRunner>()
             .BuildServiceProvider();

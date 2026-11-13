@@ -75,16 +75,7 @@ public sealed class BundleService(ProviderRegistry registry, IHistoryStore histo
                 result = UpdateResult.Fail(ErrorCategory.Unknown, "Unexpected provider error: " + ex.Message);
             }
 
-            var state = result.Outcome switch
-            {
-                UpdateOutcome.Succeeded => JobState.Completed,
-                UpdateOutcome.RestartRequired => JobState.RestartRequired,
-                UpdateOutcome.NoChange => JobState.Skipped,
-                UpdateOutcome.Blocked => JobState.Blocked,
-                UpdateOutcome.Canceled => JobState.Canceled,
-                UpdateOutcome.ManualActionRequired => JobState.ManualActionRequired,
-                _ => JobState.Failed,
-            };
+            var state = PackageInstallService.StateFor(result.Outcome);
             var message = "From bundle: " + (result.Message ?? state.ToString());
             await history.AddAsync(new HistoryRecord(0, DateTimeOffset.UtcNow, $"{ProviderKey}:{pkg.Id}", label, ProviderKey, null,
                 exactVersions ? pkg.Version : null, null, state, DateTimeOffset.UtcNow - started, result.ExitCode, result.Error,

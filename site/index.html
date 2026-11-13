@@ -720,9 +720,9 @@
               <h3>Finds what you have</h3>
               <p>
                 Reads WinGet packages, the Windows uninstall registry (read-only), Microsoft Store and
-                MSIX apps, and Scoop and Chocolatey when they are installed.
+                MSIX apps, and Scoop, Chocolatey and npm global packages when they are installed.
               </p>
-              <span class="tag">WinGet, Store, Scoop, Chocolatey</span>
+              <span class="tag">WinGet, Store, Scoop, Chocolatey, npm</span>
             </article>
             <article class="card">
               <h3>Honest status</h3>
@@ -923,6 +923,10 @@
                 <tr>
                   <td>Scoop</td>
                   <td>Supported when installed. Global installs need administrator rights.</td>
+                </tr>
+                <tr>
+                  <td>npm (global packages)</td>
+                  <td>Supported when Node.js is installed. Update and install by exact version; linked packages are left alone.</td>
                 </tr>
                 <tr>
                   <td>Microsoft Store apps</td>

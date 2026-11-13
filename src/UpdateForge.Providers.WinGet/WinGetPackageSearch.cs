@@ -9,6 +9,13 @@ namespace UpdateForge.Providers.WinGet;
 
 public sealed partial class WinGetProvider : IPackageSearchProvider
 {
+    public Task<ProviderAvailability> CheckSearchAvailabilityAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(File.Exists(_exe) ? new ProviderAvailability(ProviderHealth.Available, null, null)
+            : ProviderAvailability.NotInstalled("WinGet (App Installer) is not installed."));
+    }
+
     public async Task<IReadOnlyList<PackageSearchResult>> SearchPackagesAsync(string query, CancellationToken cancellationToken)
     {
         query = PackageSearchQuery.Validate(query);

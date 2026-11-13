@@ -13,5 +13,6 @@
     <ProjectReference Include="..\UpdateForge.Background\UpdateForge.Background.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Scoop\UpdateForge.Providers.Scoop.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Chocolatey\UpdateForge.Providers.Chocolatey.csproj" />
+    <ProjectReference Include="..\UpdateForge.Providers.Npm\UpdateForge.Providers.Npm.csproj" />
   </ItemGroup>
 </Project>

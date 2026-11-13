@@ -8,8 +8,9 @@ A free, open-source (MIT) software updater for Windows 11 and compatible Windows
 
 ## Features
 
-- **Discovery**: WinGet (installed packages, available versions, pins), Windows uninstall registry (read-only), Microsoft Store/MSIX packages, Scoop and Chocolatey when installed.
-- **Discover packages**: search available packages across enabled WinGet, Scoop, and Chocolatey managers using their configured sources and buckets, with cancellation and per-manager error details.
+- **Discovery**: WinGet (installed packages, available versions, pins), Windows uninstall registry (read-only), Microsoft Store/MSIX packages, Scoop, Chocolatey and npm (global packages) when installed.
+- **Discover packages**: search enabled managers and their configured catalogs in parallel, with results appearing as each manager finishes. Recent searches are reused for up to two minutes; Refresh fetches fresh results. Cancellation keeps packages already found. Every result has an **Install** button for WinGet, Scoop, Chocolatey and npm: it asks for confirmation first, skips packages that are already installed, takes the same lock as update runs so the two never overlap, and records the attempt in History.
+- **npm**: global packages are inventoried, checked against the registry, and updated by installing the exact version that was checked. npm is run as `node.exe npm-cli.js` directly (never `npm.cmd` or a shell), package names and versions are validated, and packages installed with `npm link` are treated as held. Permission errors are reported as needing administrator rights.
 - **Honest status**: every application is *Update ready*, *Approval required*, *Manual update*, *No update method* or *Unknown*. UpdateForge never reports an unknown version as "newer" and never invents installers or switches.
 - **Update engine**: sequential queue, per-item state machine, post-install verification, restart detection, crash recovery (an interrupted install is never reported as success).
 - **Fluent WPF UI**: dashboard, installed applications, queue, history, settings; light/dark; tray icon.
@@ -39,9 +40,9 @@ See [SECURITY.md](SECURITY.md). In short: official package-manager CLIs at fixed
 
 - Windows cannot update arbitrary third-party software; registry-only apps are inventory-only.
 - Store apps: no supported API exists to check or trigger updates for other apps; UpdateForge offers an *Open Microsoft Store* handoff.
-- Packages needing administrator rights are never installed unattended; Chocolatey upgrades require running UpdateForge elevated.
+- Packages needing administrator rights are never installed unattended; Chocolatey installs and upgrades require running UpdateForge elevated. Installing from Discover always asks first, and npm packages can run their own install scripts, so check what you install.
 - WinGet integration uses the CLI (anchored on locale-independent `winget export`), not yet the COM API.
-- Scoop/Chocolatey providers are fixture-tested only; Portable-app provider, self-update, localization, ARM64 and UI automation tests are not implemented yet.
+- Scoop/Chocolatey providers are fixture-tested only, and the npm provider is fixture-tested plus checked read-only against a real npm (listing, search, registry, version check; no real update or install was run). npm must be installed with the standard Node.js layout (nvm and Volta layouts are not supported yet), and Scoop cannot install a specific version; Portable-app provider, self-update, localization, ARM64 and UI automation tests are not implemented yet.
 
 ## Build from source
 

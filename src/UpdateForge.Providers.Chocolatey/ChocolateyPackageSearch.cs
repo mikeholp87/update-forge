@@ -6,6 +6,13 @@ namespace UpdateForge.Providers.Chocolatey;
 
 public sealed partial class ChocolateyProvider : IPackageSearchProvider
 {
+    public Task<ProviderAvailability> CheckSearchAvailabilityAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(File.Exists(_exe) ? new ProviderAvailability(ProviderHealth.Available, null, null)
+            : ProviderAvailability.NotInstalled("Chocolatey is not installed."));
+    }
+
     public async Task<IReadOnlyList<PackageSearchResult>> SearchPackagesAsync(string query, CancellationToken cancellationToken)
     {
         query = PackageSearchQuery.Validate(query);

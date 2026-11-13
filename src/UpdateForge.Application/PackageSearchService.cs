@@ -1,17 +1,35 @@
+using System.Runtime.CompilerServices;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Providers;
 
 namespace UpdateForge.Application;
 
 public sealed record PackageSearchProviderResult(string ProviderId, string DisplayName,
-    IReadOnlyList<PackageSearchResult> Packages, string? Error);
+    IReadOnlyList<PackageSearchResult> Packages, string? Error, bool IsCached = false);
 
 public sealed record PackageSearchResponse(IReadOnlyList<PackageSearchResult> Packages,
     IReadOnlyList<PackageSearchProviderResult> Providers);
 
-public sealed class PackageSearchService(ProviderRegistry registry, ISettingsStore settingsStore)
+public sealed class PackageSearchService(ProviderRegistry registry, ISettingsStore settingsStore, TimeProvider? timeProvider = null)
 {
-    public async Task<PackageSearchResponse> SearchAsync(string query, CancellationToken ct)
+    private readonly TimeProvider _clock = timeProvider ?? TimeProvider.System;
+    private readonly object _cacheLock = new();
+    private readonly Dictionary<(string Provider, string Query), CachedSearch> _searches = [];
+    private readonly Dictionary<string, CachedAvailability> _availability = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long> _generations = new(StringComparer.OrdinalIgnoreCase);
+    private const int MaxCachedQueries = 32;
+
+    public async Task<PackageSearchResponse> SearchAsync(string query, CancellationToken ct, bool refresh = false)
+    {
+        var results = new List<PackageSearchProviderResult>();
+        await foreach (var result in SearchProvidersAsync(query, ct, refresh).ConfigureAwait(false)) results.Add(result);
+        return new PackageSearchResponse(Normalize(results.SelectMany(r => r.Packages)),
+            [.. results.OrderBy(r => r.DisplayName)]);
+    }
+
+    /// <summary>Yields completed managers immediately, so slow repositories never hold back other results.</summary>
+    public async IAsyncEnumerable<PackageSearchProviderResult> SearchProvidersAsync(string query,
+        [EnumeratorCancellation] CancellationToken ct, bool refresh = false)
     {
         query = PackageSearchQuery.Validate(query);
         ct.ThrowIfCancellationRequested();
@@ -19,25 +37,113 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
         var settings = await settingsStore.LoadAsync(ct).ConfigureAwait(false);
         var providers = registry.All.Where(p => p is IPackageSearchProvider
             && settings.EnabledProviders.Contains(p.Id, StringComparer.OrdinalIgnoreCase)).OrderBy(p => p.DisplayName).ToList();
-        var results = await Task.WhenAll(providers.Select(async provider =>
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var tasks = providers.Select(provider => SearchProviderAsync(provider, query, refresh, stop.Token)).ToList();
+        try
         {
-            try
+            await foreach (var task in Task.WhenEach(tasks).WithCancellation(stop.Token).ConfigureAwait(false))
             {
-                ct.ThrowIfCancellationRequested();
-                var availability = await provider.CheckAvailabilityAsync(ct).ConfigureAwait(false);
-                if (!availability.IsAvailable)
-                    return new PackageSearchProviderResult(provider.Id, provider.DisplayName, [], availability.Message ?? "Package manager is unavailable.");
-                var packages = await ((IPackageSearchProvider)provider).SearchPackagesAsync(query, ct).ConfigureAwait(false);
-                return new PackageSearchProviderResult(provider.Id, provider.DisplayName, packages, null);
+                var result = await task.ConfigureAwait(false);
+                stop.Token.ThrowIfCancellationRequested();
+                yield return result;
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception ex) { return new PackageSearchProviderResult(provider.Id, provider.DisplayName, [], ex.Message); }
-        })).ConfigureAwait(false);
-        ct.ThrowIfCancellationRequested();
+        }
+        finally { await stop.CancelAsync().ConfigureAwait(false); }
+    }
+
+    /// <summary>Discard results after manager/source configuration changes, including in-flight cache writes.</summary>
+    public void Invalidate(string? providerId = null)
+    {
+        lock (_cacheLock)
+        {
+            if (providerId is null)
+            {
+                foreach (var provider in registry.All) _generations[provider.Id] = _generations.GetValueOrDefault(provider.Id) + 1;
+                _searches.Clear(); _availability.Clear(); return;
+            }
+            _generations[providerId] = _generations.GetValueOrDefault(providerId) + 1;
+            foreach (var key in _searches.Keys.Where(k => k.Provider.Equals(providerId, StringComparison.OrdinalIgnoreCase)).ToList())
+                _searches.Remove(key);
+            _availability.Remove(providerId);
+        }
+    }
+
+    private async Task<PackageSearchProviderResult> SearchProviderAsync(IUpdateProvider provider, string query, bool refresh, CancellationToken ct)
+    {
+        var key = (provider.Id.ToUpperInvariant(), query.ToUpperInvariant());
+        long generation;
+        ProviderAvailability? availability = null;
+        lock (_cacheLock)
+        {
+            generation = _generations.GetValueOrDefault(provider.Id);
+            if (refresh)
+            {
+                _generations[provider.Id] = ++generation;
+                foreach (var stale in _searches.Keys.Where(k => k.Provider == key.Item1).ToList()) _searches.Remove(stale);
+                _availability.Remove(provider.Id);
+            }
+            if (!refresh)
+            {
+                if (_searches.TryGetValue(key, out var cached) && cached.ExpiresAt > _clock.GetUtcNow())
+                    return cached.Result with { IsCached = true };
+                if (_availability.TryGetValue(provider.Id, out var known) && known.ExpiresAt > _clock.GetUtcNow())
+                    availability = known.Value;
+            }
+        }
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            if (availability is null)
+            {
+                availability = await ((IPackageSearchProvider)provider).CheckSearchAvailabilityAsync(ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                lock (_cacheLock)
+                {
+                    if (generation == _generations.GetValueOrDefault(provider.Id))
+                        _availability[provider.Id] = new(availability, _clock.GetUtcNow().AddSeconds(availability.IsAvailable ? 60 : 15));
+                }
+            }
+            if (!availability.IsAvailable)
+            {
+                lock (_cacheLock)
+                {
+                    if (generation == _generations.GetValueOrDefault(provider.Id))
+                        foreach (var stale in _searches.Keys.Where(k => k.Provider == key.Item1).ToList()) _searches.Remove(stale);
+                }
+                return new(provider.Id, provider.DisplayName, [], availability.Message ?? "Package manager is unavailable.");
+            }
+            var packages = await ((IPackageSearchProvider)provider).SearchPackagesAsync(query, ct).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
+            var result = new PackageSearchProviderResult(provider.Id, provider.DisplayName, Normalize(packages), null);
+            lock (_cacheLock)
+            {
+                if (generation == _generations.GetValueOrDefault(provider.Id))
+                {
+                    // Bound memory even when the user makes many distinct searches.
+                    if (_searches.Count >= MaxCachedQueries) _searches.Remove(_searches.MinBy(p => p.Value.ExpiresAt).Key);
+                    _searches[key] = new(result, _clock.GetUtcNow().AddMinutes(2));
+                }
+            }
+            return result;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            // A failed fresh search must not leave older successes or health checks masking the error.
+            lock (_cacheLock)
+            {
+                if (generation == _generations.GetValueOrDefault(provider.Id)) { _searches.Remove(key); _availability.Remove(provider.Id); }
+            }
+            return new(provider.Id, provider.DisplayName, [], ex.Message);
+        }
+    }
+
+    private static List<PackageSearchResult> Normalize(IEnumerable<PackageSearchResult> packages) =>
         // Keep identities from different managers and sources separate.
-        var all = results.SelectMany(r => r.Packages)
+        packages
             .DistinctBy(p => (p.ProviderId.ToUpperInvariant(), p.PackageId.ToUpperInvariant(), p.Source?.ToUpperInvariant()))
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.ProviderId).ThenBy(p => p.Source).ToList();
-        return new PackageSearchResponse(all, results);
-    }
+
+    private sealed record CachedSearch(PackageSearchProviderResult Result, DateTimeOffset ExpiresAt);
+    private sealed record CachedAvailability(ProviderAvailability Value, DateTimeOffset ExpiresAt);
 }

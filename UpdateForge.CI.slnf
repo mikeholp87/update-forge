@@ -9,6 +9,7 @@
       "src\\UpdateForge.Desktop\\UpdateForge.Desktop.csproj",
       "src\\UpdateForge.Infrastructure\\UpdateForge.Infrastructure.csproj",
       "src\\UpdateForge.Providers.Chocolatey\\UpdateForge.Providers.Chocolatey.csproj",
+      "src\\UpdateForge.Providers.Npm\\UpdateForge.Providers.Npm.csproj",
       "src\\UpdateForge.Providers.Scoop\\UpdateForge.Providers.Scoop.csproj",
       "src\\UpdateForge.Providers.WinGet\\UpdateForge.Providers.WinGet.csproj",
       "src\\UpdateForge.Providers.Windows\\UpdateForge.Providers.Windows.csproj",

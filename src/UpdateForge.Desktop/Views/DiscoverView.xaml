@@ -21,10 +21,11 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ui:TextBox PlaceholderText="Search packages by name or ID" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
                         Icon="{ui:SymbolIcon Search24}" Margin="0,0,8,0" MaxLength="256"
-                        IsEnabled="{Binding SearchCommand.IsRunning, Converter={StaticResource InverseBool}}"
+                        IsEnabled="{Binding IsSearching, Converter={StaticResource InverseBool}}"
                         AutomationProperties.Name="Search package catalogs">
                 <ui:TextBox.InputBindings>
                     <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
@@ -32,13 +33,18 @@
             </ui:TextBox>
             <ui:Button Grid.Column="1" Content="Search" Appearance="Primary" Command="{Binding SearchCommand}" Margin="0,0,8,0"
                        AutomationProperties.Name="Search all enabled package managers" />
-            <ui:Button Grid.Column="2" Content="Cancel" Command="{Binding SearchCancelCommand}"
-                       Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BoolToVisibility}}"
+            <ui:Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0"
+                       ToolTip="Search all enabled managers again for the latest packages."
+                       AutomationProperties.Name="Refresh package search results" />
+            <ui:Button Grid.Column="3" Content="Cancel" Command="{Binding CancelSearchCommand}"
+                       Visibility="{Binding IsSearching, Converter={StaticResource BoolToVisibility}}"
                        AutomationProperties.Name="Cancel package search" />
         </Grid>
         <StackPanel Grid.Row="2" Margin="0,0,0,12">
             <ProgressBar Height="3" IsIndeterminate="True" Margin="0,0,0,8"
-                         Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BoolToVisibility}}" />
+                         Visibility="{Binding IsSearching, Converter={StaticResource BoolToVisibility}}" />
+            <ProgressBar Height="3" IsIndeterminate="True" Margin="0,0,0,8"
+                         Visibility="{Binding InstallRunning, Converter={StaticResource BoolToVisibility}}" />
             <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             <ui:Button Content="Package managers" HorizontalAlignment="Left" Margin="0,8,0,0"
                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -56,6 +62,19 @@
                 <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="*" />
                 <DataGridTextColumn Header="Manager" Binding="{Binding Manager}" Width="*" />
                 <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" />
+                <DataGridTemplateColumn Header="" Width="Auto">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ui:Button Content="Install" Appearance="Primary" Padding="12,3"
+                                       Command="{Binding DataContext.InstallCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       CommandParameter="{Binding}"
+                                       IsEnabled="{Binding DataContext.InstallRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBool}}"
+                                       Visibility="{Binding CanInstall, Converter={StaticResource BoolToVisibility}}"
+                                       AutomationProperties.Name="{Binding Name, StringFormat='Install {0}'}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

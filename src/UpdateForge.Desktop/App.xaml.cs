@@ -9,6 +9,7 @@ using UpdateForge.Desktop.ViewModels;
 using UpdateForge.Infrastructure;
 using UpdateForge.Providers.Windows;
 using UpdateForge.Providers.Chocolatey;
+using UpdateForge.Providers.Npm;
 using UpdateForge.Providers.Scoop;
 using UpdateForge.Providers.WinGet;
 using Wpf.Ui.Appearance;
@@ -71,6 +72,7 @@ public partial class App : System.Windows.Application
             .AddSingleton<IUpdateProvider, MicrosoftStoreProvider>()
             .AddSingleton<IUpdateProvider, ScoopProvider>()
             .AddSingleton<IUpdateProvider, ChocolateyProvider>()
+            .AddSingleton<IUpdateProvider, NpmProvider>()
             .AddSingleton<IScheduleService, ScheduledTaskService>()
             .AddSingleton<HistoryViewModel>()
             .AddSingleton<SettingsViewModel>()

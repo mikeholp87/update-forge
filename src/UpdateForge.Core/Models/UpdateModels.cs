@@ -15,8 +15,11 @@ public sealed record UpdateRequest(InstalledApplication Application, string? Tar
     public Guid CorrelationId { get; init; } = Guid.NewGuid();
 }
 
-/// <summary>A request to install a package that is not installed yet (used by bundle import). The provider re-validates every field.</summary>
-public sealed record InstallRequest(string PackageId, string Source, string? Version = null)
+/// <summary>
+/// A request to install a package that is not installed yet (bundle import and Discover). The provider re-validates every field.
+/// <paramref name="Source"/> is the WinGet source or Scoop bucket; managers without sources (Chocolatey) ignore it.
+/// </summary>
+public sealed record InstallRequest(string PackageId, string? Source, string? Version = null)
 {
     public Guid CorrelationId { get; init; } = Guid.NewGuid();
 }

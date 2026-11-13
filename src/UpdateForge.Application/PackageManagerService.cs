@@ -7,7 +7,8 @@ public sealed record PackageManagerStatus(string Id, string DisplayName, bool En
     ProviderAvailability Availability, ProviderCapabilities Capabilities, string? ExecutablePath,
     bool SupportsSources, bool CanRefreshSources);
 
-public sealed class PackageManagerService(ProviderRegistry registry, ISettingsStore settingsStore, IEngineLock engineLock)
+public sealed class PackageManagerService(ProviderRegistry registry, ISettingsStore settingsStore, IEngineLock engineLock,
+    PackageSearchService? search = null)
 {
     public async Task<IReadOnlyList<PackageManagerStatus>> GetStatusAsync(CancellationToken ct)
     {
@@ -36,6 +37,7 @@ public sealed class PackageManagerService(ProviderRegistry registry, ISettingsSt
         {
             EnabledProviders = [.. settings.EnabledProviders.Where(id => !known.Contains(id)), .. selected],
         }, ct).ConfigureAwait(false);
+        search?.Invalidate();
     }
 
     public async Task<string> GetSourcesAsync(string id, CancellationToken ct)
@@ -49,7 +51,8 @@ public sealed class PackageManagerService(ProviderRegistry registry, ISettingsSt
         using var lease = engineLock.TryAcquire() ?? throw new InvalidOperationException("An update or maintenance operation is already running. Try again after it finishes.");
         var manager = await RequireAvailableAsync(id, ct).ConfigureAwait(false);
         if (!manager.CanRefreshSources) throw new NotSupportedException("This manager fetches sources when checking packages; no refresh is needed.");
-        return await manager.RefreshSourcesAsync(ct).ConfigureAwait(false);
+        try { return await manager.RefreshSourcesAsync(ct).ConfigureAwait(false); }
+        finally { search?.Invalidate(id); }
     }
 
     private async Task<IPackageManager> RequireAvailableAsync(string id, CancellationToken ct)

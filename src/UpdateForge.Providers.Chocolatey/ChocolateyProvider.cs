@@ -141,6 +141,35 @@ public sealed partial class ChocolateyProvider : IUpdateProvider, IPackageManage
         };
     }
 
+    public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
+    {
+        if (!IdPattern().IsMatch(request.PackageId ?? ""))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Chocolatey package id failed validation; refusing to run.");
+        if (request.Version is { } v && !VersionPattern().IsMatch(v))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Chocolatey version failed validation; refusing to run.");
+        if (!_isElevated())
+            return new UpdateResult { Outcome = UpdateOutcome.ManualActionRequired, Error = ErrorCategory.ElevationRequired, Message = "Chocolatey installs need administrator rights; UpdateForge did not elevate." };
+
+        _log.LogInformation("Installing Chocolatey package {Package} (correlation {Correlation})", request.PackageId, request.CorrelationId);
+        progress.Report(new UpdateProgress("Starting Chocolatey…", null, "Installing"));
+        // No --force, no --ignore-checksums, no --allow-empty-checksums: integrity checks are never weakened.
+        var args = new List<string> { "install", request.PackageId!, "--yes", "--no-progress", "--limit-output", "--no-color" };
+        if (request.Version is { Length: > 0 } tv) { args.Add("--version"); args.Add(tv); }
+        var r = await _runner.RunAsync(new ProcessSpec(_exe, args, TimeSpan.FromMinutes(30),
+            l => { if (l.Trim().Length > 3) progress.Report(new UpdateProgress(l.Trim())); }), cancellationToken).ConfigureAwait(false);
+        if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "Chocolatey timed out.");
+        var tail = r.StdOut.Length > 4000 ? r.StdOut[^4000..] : r.StdOut;
+        return r.ExitCode switch
+        {
+            0 => new UpdateResult { Outcome = UpdateOutcome.Succeeded, ExitCode = 0, Message = "Installed.", TechnicalDetails = tail },
+            1604 or 3010 => new UpdateResult { Outcome = UpdateOutcome.RestartRequired, ExitCode = r.ExitCode, RestartRequired = true, Message = "Installed; a restart is required.", TechnicalDetails = tail },
+            _ => UpdateResult.Fail(ErrorCategory.InstallerFailed, $"Chocolatey exited with code {r.ExitCode}.", r.ExitCode, tail),
+        };
+    }
+
+    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9.+_\-]{0,63}$", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionPattern();
+
     public async Task<string?> GetInstalledVersionAsync(InstalledApplication application, CancellationToken cancellationToken)
     {
         if (application.PackageId is null || !IdPattern().IsMatch(application.PackageId)) return null;

@@ -41,6 +41,10 @@ public sealed partial class ShellViewModel : ObservableObject
         SettingsPage = settingsVm;
         PackageManagersPage = managersVm;
         DiscoverPage = discoverVm;
+        discoverVm.IsAlreadyInstalled = p => Apps.Any(r =>
+            string.Equals(r.App.PackageId, p.PackageId, StringComparison.OrdinalIgnoreCase) && string.Equals(r.App.ProviderId, p.ProviderId, StringComparison.OrdinalIgnoreCase));
+        discoverVm.PackageInstalled += () => _ = ScanCoreAsync(notify: false);
+        discoverVm.Notify += (title, text) => { if (_settings.NotifyCompleted) Notify?.Invoke(title, text); };
         managersVm.SettingsChanged = ReloadSettingsAsync;
         AppsView = CollectionViewSource.GetDefaultView(Apps);
         AppsView.Filter = o => o is AppRowViewModel r && r.Matches(Filter) && MatchesSearch(r);
@@ -147,6 +151,7 @@ public sealed partial class ShellViewModel : ObservableObject
         AttentionCount = Apps.Count(r => r.NeedsAttention);
         Selected = keepSelected is null ? null : Apps.FirstOrDefault(r => r.App.Id == keepSelected);
         AppsView.Refresh();
+        DiscoverPage.RefreshInstalledState();
     }
 
     private async Task RefreshMetaAsync()

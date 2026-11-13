@@ -158,6 +158,29 @@ public sealed partial class ScoopProvider : IUpdateProvider, IPackageManager
             : UpdateResult.Fail(ErrorCategory.InstallerFailed, $"Scoop exited with code {r.ExitCode}.", r.ExitCode, tail);
     }
 
+    public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
+    {
+        // The name and bucket come from search output (remote metadata), so both are validated before they reach a command line.
+        if (!NamePattern().IsMatch(request.PackageId ?? ""))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Scoop package name failed validation; refusing to run.");
+        if (request.Source is { } bucket && !NamePattern().IsMatch(bucket))
+            return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "Scoop bucket name failed validation; refusing to run.");
+        if (request.Version is not null)
+            return UpdateResult.Fail(ErrorCategory.NoApplicableInstaller, "Scoop installs the latest version from the bucket; a specific version cannot be requested.");
+
+        var target = request.Source is { } b ? $"{b}/{request.PackageId}" : request.PackageId!;
+        _log.LogInformation("Installing Scoop package {Package} (correlation {Correlation})", target, request.CorrelationId);
+        progress.Report(new UpdateProgress("Starting Scoop…", null, "Installing"));
+        var r = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(30), l => { if (l.Trim().Length > 3) progress.Report(new UpdateProgress(l.Trim())); }, "install", target), cancellationToken).ConfigureAwait(false);
+        if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "Scoop timed out.");
+        var tail = r.StdOut.Length > 4000 ? r.StdOut[^4000..] : r.StdOut;
+        if (r.ExitCode != 0) return UpdateResult.Fail(ErrorCategory.InstallerFailed, $"Scoop exited with code {r.ExitCode}.", r.ExitCode, tail);
+        // Scoop reports an already-installed package as a warning with exit code 0; do not call that a fresh install.
+        return tail.Contains("is already installed", StringComparison.OrdinalIgnoreCase)
+            ? new UpdateResult { Outcome = UpdateOutcome.NoChange, ExitCode = 0, Message = "Already installed.", TechnicalDetails = tail }
+            : new UpdateResult { Outcome = UpdateOutcome.Succeeded, ExitCode = 0, Message = "Installed.", TechnicalDetails = tail };
+    }
+
     public async Task<string?> GetInstalledVersionAsync(InstalledApplication application, CancellationToken cancellationToken)
     {
         var export = await _runner.RunAsync(Spec(TimeSpan.FromMinutes(2), null, "export"), cancellationToken).ConfigureAwait(false);

@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\UpdateForge.Providers.Scoop\UpdateForge.Providers.Scoop.csproj" />
     <ProjectReference Include="..\..\src\UpdateForge.Providers.Chocolatey\UpdateForge.Providers.Chocolatey.csproj" />
+    <ProjectReference Include="..\..\src\UpdateForge.Providers.Npm\UpdateForge.Providers.Npm.csproj" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">

@@ -7,6 +7,13 @@ namespace UpdateForge.Providers.Scoop;
 
 public sealed partial class ScoopProvider : IPackageSearchProvider
 {
+    public Task<ProviderAvailability> CheckSearchAvailabilityAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(File.Exists(_scoopScript) && File.Exists(_powershell) ? new ProviderAvailability(ProviderHealth.Available, null, null)
+            : ProviderAvailability.NotInstalled("Scoop is not installed."));
+    }
+
     public async Task<IReadOnlyList<PackageSearchResult>> SearchPackagesAsync(string query, CancellationToken cancellationToken)
     {
         query = PackageSearchQuery.Validate(query);

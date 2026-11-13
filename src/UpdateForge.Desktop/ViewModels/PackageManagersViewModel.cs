@@ -41,7 +41,7 @@ public sealed partial class PackageManagersViewModel(PackageManagerService servi
     private bool CanSave() => !IsBusy && Managers.Count > 0;
     private bool CanShowSources() => !IsBusy && Selected is { IsEnabled: true, Status.SupportsSources: true, Status.Availability.IsAvailable: true };
     private bool CanRefreshSources() => CanShowSources() && Selected?.Status.CanRefreshSources == true;
-    private bool CanOpenSetup() => Selected?.Id is "winget" or "scoop" or "chocolatey";
+    private bool CanOpenSetup() => Selected?.Id is "winget" or "scoop" or "chocolatey" or "npm";
 
     partial void OnSelectedChanged(PackageManagerRow? value) => SourceOutput = "Select Show sources to load the current configuration.";
 
@@ -103,6 +103,7 @@ public sealed partial class PackageManagersViewModel(PackageManagerService servi
             "winget" => "https://learn.microsoft.com/windows/package-manager/winget/",
             "scoop" => "https://scoop.sh/",
             "chocolatey" => "https://chocolatey.org/install",
+            "npm" => "https://nodejs.org/en/download",
             _ => null,
         };
         if (url is null) return;

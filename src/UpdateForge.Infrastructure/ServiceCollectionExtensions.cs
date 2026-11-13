@@ -66,6 +66,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<InventoryService>();
         services.AddSingleton<UpdateEngine>();
         services.AddSingleton<BundleService>();
+        services.AddSingleton<PackageInstallService>();
         services.AddSingleton<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>();
 
         Directory.CreateDirectory(LogDirectory);
