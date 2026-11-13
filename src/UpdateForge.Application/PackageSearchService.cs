@@ -20,6 +20,36 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
     private readonly Dictionary<(string Provider, string Package, string Source), CachedDetails> _details = [];
     private const int MaxCachedQueries = 32;
     private const int MaxCachedDetails = 64;
+    private readonly Dictionary<(string Provider, string Query), CachedNames> _names = [];
+
+    /// <summary>True when the manager returns IDs from search and can fill in display names afterwards.</summary>
+    public bool ProvidesDisplayNames(string providerId) =>
+        registry.All.FirstOrDefault(p => p.Id.Equals(providerId, StringComparison.OrdinalIgnoreCase)) is IPackageSearchProvider { ProvidesDisplayNames: true };
+
+    /// <summary>Display names (keyed by package ID) for a query's results, from a manager's slower detailed listing.</summary>
+    public async Task<IReadOnlyDictionary<string, string>> GetDisplayNamesAsync(string providerId, string query, CancellationToken ct)
+    {
+        query = PackageSearchQuery.Validate(query);
+        if (registry.All.FirstOrDefault(p => p.Id.Equals(providerId, StringComparison.OrdinalIgnoreCase)) is not IPackageSearchProvider { ProvidesDisplayNames: true } provider)
+            return new Dictionary<string, string>();
+        var key = (provider.Id.ToUpperInvariant(), query.ToUpperInvariant());
+        long generation;
+        lock (_cacheLock)
+        {
+            generation = _generations.GetValueOrDefault(provider.Id);
+            if (_names.TryGetValue(key, out var cached) && cached.ExpiresAt > _clock.GetUtcNow()) return cached.Value;
+        }
+        var names = await provider.GetDisplayNamesAsync(query, ct).ConfigureAwait(false);
+        lock (_cacheLock)
+        {
+            if (generation == _generations.GetValueOrDefault(provider.Id))
+            {
+                if (_names.Count >= MaxCachedQueries) _names.Remove(_names.MinBy(p => p.Value.ExpiresAt).Key);
+                _names[key] = new(names, _clock.GetUtcNow().AddMinutes(10));
+            }
+        }
+        return names;
+    }
 
     /// <summary>Reads catalog details for one search result from the manager that found it.</summary>
     /// <returns>Null when that manager cannot describe packages.</returns>
@@ -87,7 +117,7 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
             if (providerId is null)
             {
                 foreach (var provider in registry.All) _generations[provider.Id] = _generations.GetValueOrDefault(provider.Id) + 1;
-                _searches.Clear(); _availability.Clear(); _details.Clear(); return;
+                _searches.Clear(); _availability.Clear(); _details.Clear(); _names.Clear(); return;
             }
             _generations[providerId] = _generations.GetValueOrDefault(providerId) + 1;
             foreach (var key in _searches.Keys.Where(k => k.Provider.Equals(providerId, StringComparison.OrdinalIgnoreCase)).ToList())
@@ -95,6 +125,8 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
             _availability.Remove(providerId);
             foreach (var key in _details.Keys.Where(k => k.Provider.Equals(providerId, StringComparison.OrdinalIgnoreCase)).ToList())
                 _details.Remove(key);
+            foreach (var key in _names.Keys.Where(k => k.Provider.Equals(providerId, StringComparison.OrdinalIgnoreCase)).ToList())
+                _names.Remove(key);
         }
     }
 
@@ -110,6 +142,7 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
             {
                 _generations[provider.Id] = ++generation;
                 foreach (var stale in _searches.Keys.Where(k => k.Provider == key.Item1).ToList()) _searches.Remove(stale);
+                foreach (var stale in _names.Keys.Where(k => k.Provider == key.Item1).ToList()) _names.Remove(stale);
                 _availability.Remove(provider.Id);
             }
             if (!refresh)
@@ -175,6 +208,7 @@ public sealed class PackageSearchService(ProviderRegistry registry, ISettingsSto
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.ProviderId).ThenBy(p => p.Source).ToList();
 
     private sealed record CachedSearch(PackageSearchProviderResult Result, DateTimeOffset ExpiresAt);
+    private sealed record CachedNames(IReadOnlyDictionary<string, string> Value, DateTimeOffset ExpiresAt);
     private sealed record CachedDetails(PackageDetails Value, DateTimeOffset ExpiresAt);
     private sealed record CachedAvailability(ProviderAvailability Value, DateTimeOffset ExpiresAt);
 }

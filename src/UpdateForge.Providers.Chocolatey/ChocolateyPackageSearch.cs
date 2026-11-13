@@ -26,6 +26,48 @@ public sealed partial class ChocolateyProvider : IPackageSearchProvider
             .Select(p => new PackageSearchResult(ProviderKey, p.Id, p.Id, p.Version, null))];
     }
 
+    public bool ProvidesDisplayNames => true;
+
+    /// <summary>
+    /// <c>choco search --limit-output</c> prints only IDs; the package titles are only in the detailed listing,
+    /// which is many times slower, so it runs separately after the fast results are shown.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, string>> GetDisplayNamesAsync(string query, CancellationToken cancellationToken)
+    {
+        query = PackageSearchQuery.Validate(query);
+        var result = await _runner.RunAsync(new ProcessSpec(_exe,
+            ["search", query, "--detailed", "--no-color"], TimeSpan.FromMinutes(5)), cancellationToken).ConfigureAwait(false);
+        if (!result.TimedOut && result.ExitCode == 2) return new Dictionary<string, string>();
+        PackageManagerOutput.RequireSuccess(result, "Read Chocolatey package names");
+        return ParseDisplayNames(result.StdOut);
+    }
+
+    /// <summary>
+    /// Reads "id version [status]" headers that are directly followed by a " Title: … | Published: …" line.
+    /// Requiring the Title line keeps description text that happens to look like a header from being misread.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> ParseDisplayNames(string output)
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var lines = output.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        for (var i = 0; i + 1 < lines.Length; i++)
+        {
+            var header = lines[i];
+            if (header.Length == 0 || char.IsWhiteSpace(header[0])) continue;
+            var next = lines[i + 1].TrimStart();
+            if (!next.StartsWith("Title:", StringComparison.Ordinal)) continue;
+            var parts = header.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2 || !IdPattern().IsMatch(parts[0]) || !char.IsAsciiDigit(parts[1][0])) continue;
+            var title = next["Title:".Length..];
+            var pipe = title.IndexOf(" | ", StringComparison.Ordinal);
+            if (pipe >= 0) title = title[..pipe];
+            title = title.Trim();
+            if (title.Length is 0 or > 200 || title.Any(char.IsControl)) continue;
+            names.TryAdd(parts[0], title);
+        }
+        return names;
+    }
+
     public async Task<PackageDetails?> GetPackageDetailsAsync(PackageSearchResult package, CancellationToken cancellationToken)
     {
         if (!IdPattern().IsMatch(package.PackageId))

@@ -15,7 +15,8 @@ public sealed partial class DiscoveredPackageRow(PackageSearchResult package, st
 {
     public PackageSearchResult Package { get; } = package;
     public string Manager { get; } = manager;
-    public string Name => Package.Name;
+    /// <summary>Starts as what search returned; replaced by the publisher's title when the manager supplies it later.</summary>
+    [ObservableProperty] private string _name = package.Name;
     public string PackageId => Package.PackageId;
     public string Version => Package.Version;
     public string Source => Package.Source ?? "Configured sources";
@@ -32,6 +33,7 @@ public sealed partial class DiscoverViewModel(PackageSearchService service, Pack
     private readonly SearchResultCollection _packages = [];
     private bool _sortInitialized;
     private bool _cancelRequested;
+    private CancellationTokenSource? _namesCts;
     public ObservableCollection<DiscoveredPackageRow> Packages => _packages;
 
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(SearchCommand)), NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
@@ -75,6 +77,10 @@ public sealed partial class DiscoverViewModel(PackageSearchService service, Pack
     {
         if (IsSearching || InstallRunning) return;
         _cancelRequested = false;
+        // Results are about to be replaced, so name lookups for the previous search are no longer wanted.
+        _namesCts?.Cancel();
+        _namesCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var namesToken = _namesCts.Token;
         IsSearching = true;
         var results = new List<PackageSearchProviderResult>();
         var query = Query.Trim();
@@ -85,19 +91,29 @@ public sealed partial class DiscoverViewModel(PackageSearchService service, Pack
         {
             if (!_sortInitialized)
             {
-                CollectionViewSource.GetDefaultView(Packages).SortDescriptions.Add(new(nameof(DiscoveredPackageRow.Name), ListSortDirection.Ascending));
+                var view = CollectionViewSource.GetDefaultView(Packages);
+                view.SortDescriptions.Add(new(nameof(DiscoveredPackageRow.Name), ListSortDirection.Ascending));
+                // Names can change after rows are shown, so keep the sort order live.
+                if (view is ICollectionViewLiveShaping { CanChangeLiveSorting: true } live)
+                {
+                    live.LiveSortingProperties.Add(nameof(DiscoveredPackageRow.Name));
+                    live.IsLiveSorting = true;
+                }
                 _sortInitialized = true;
             }
             await foreach (var completed in service.SearchProvidersAsync(query, ct, refresh))
             {
                 ct.ThrowIfCancellationRequested();
                 results.Add(completed);
-                _packages.Append(completed.Packages.Select(package =>
+                var rows = completed.Packages.Select(package =>
                 {
                     var row = new DiscoveredPackageRow(package, completed.DisplayName);
                     if (IsAlreadyInstalled?.Invoke(package) == true) { row.IsInstalled = true; row.Status = "Installed"; }
                     return row;
-                }));
+                }).ToList();
+                _packages.Append(rows);
+                if (rows.Count > 0 && service.ProvidesDisplayNames(completed.ProviderId))
+                    _ = FillDisplayNamesAsync(completed.ProviderId, query, rows, namesToken);
                 ProviderNotice = string.Join(Environment.NewLine, results.Where(p => p.Error is not null)
                     .Select(p => $"{p.DisplayName}: {p.Error}"));
                 if (!InstallRunning) Message = $"Found {Packages.Count} package(s) so far for “{query}”. Searching remaining managers…";
@@ -122,6 +138,20 @@ public sealed partial class DiscoverViewModel(PackageSearchService service, Pack
         }
         catch (Exception ex) { if (!InstallRunning) Message = "Search failed: " + ex.Message; }
         finally { IsSearching = false; }
+    }
+
+    /// <summary>Swaps package IDs for the manager's display names once its slower listing arrives. Failures keep the IDs.</summary>
+    private async Task FillDisplayNamesAsync(string providerId, string query, IReadOnlyList<DiscoveredPackageRow> rows, CancellationToken ct)
+    {
+        try
+        {
+            var names = await Task.Run(() => service.GetDisplayNamesAsync(providerId, query, ct), ct);
+            if (ct.IsCancellationRequested) return;
+            foreach (var row in rows)
+                if (names.TryGetValue(row.PackageId, out var name) && row.Name == row.Package.Name) row.Name = name;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { log.LogInformation(ex, "Display names were not available from {Provider}", providerId); }
     }
 
     // WPF refreshes its grid once per completed manager, rather than once for every package added.

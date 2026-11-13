@@ -189,6 +189,63 @@ public class PackageDetailsTests
         Assert.Equal(2, provider.Calls);
     }
 
+    [Fact]
+    public void Chocolatey_detailed_search_yields_titles_keyed_by_id()
+    {
+        const string output = """
+            Chocolatey v2.7.5
+            antigravity-ide 2.6.0 [Approved] Downloads cached for licensed users
+             Title: Antigravity IDE | Published: 10/27/2026
+             Package url https://community.chocolatey.org/packages/antigravity-ide/2.6.0
+             Description: An IDE.
+            looks-like-header 1.0 but is description text
+            azureaccount-vscode 0.13.0.20261005 [Approved]
+             Title: [Deprecated] Azure Account VSCode Extension | Published: 10/4/2026
+            cakerecipe-vscode 0.5.0 [Approved] - Possibly broken
+             Title:  | Published: 10/4/2026
+
+            3 packages found.
+            """;
+
+        var names = ChocolateyProvider.ParseDisplayNames(output);
+
+        Assert.Equal(2, names.Count);
+        Assert.Equal("Antigravity IDE", names["ANTIGRAVITY-IDE"]);
+        Assert.Equal("[Deprecated] Azure Account VSCode Extension", names["azureaccount-vscode"]);
+    }
+
+    [Fact]
+    public async Task Chocolatey_display_names_use_detailed_search()
+    {
+        var runner = new RecordingRunner(new ProcessResult(0, "git 2.0 [Approved]\n Title: Git | Published: 1/1/2026\n", "", false));
+        var provider = new ChocolateyProvider(runner, NullLogger<ChocolateyProvider>.Instance, @"C:\choco.exe");
+
+        var names = await ((IPackageSearchProvider)provider).GetDisplayNamesAsync("git", TestContext.Current.CancellationToken);
+
+        Assert.True(((IPackageSearchProvider)provider).ProvidesDisplayNames);
+        Assert.Equal("Git", names["git"]);
+        Assert.Equal(["search", "git", "--detailed", "--no-color"], Assert.Single(runner.Specs).Arguments);
+    }
+
+    [Fact]
+    public async Task Service_caches_display_names_and_skips_managers_without_them()
+    {
+        var provider = new DetailsProvider("chocolatey") { Names = true };
+        var plain = new DetailsProvider("winget");
+        var service = new PackageSearchService(new ProviderRegistry([provider, plain]), new NoSettings());
+
+        var first = await service.GetDisplayNamesAsync("Chocolatey", "git", TestContext.Current.CancellationToken);
+        await service.GetDisplayNamesAsync("chocolatey", " GIT ", TestContext.Current.CancellationToken);
+        var none = await service.GetDisplayNamesAsync("winget", "git", TestContext.Current.CancellationToken);
+
+        Assert.Equal("Display git", first["git"]);
+        Assert.Equal(1, provider.NameCalls);
+        Assert.Empty(none);
+        Assert.Equal(0, plain.NameCalls);
+        Assert.True(service.ProvidesDisplayNames("chocolatey"));
+        Assert.False(service.ProvidesDisplayNames("winget"));
+    }
+
     private sealed class RecordingRunner(ProcessResult result) : IProcessRunner
     {
         public List<ProcessSpec> Specs { get; } = [];
@@ -204,6 +261,14 @@ public class PackageDetailsTests
     private sealed class DetailsProvider(string id) : IUpdateProvider, IPackageSearchProvider
     {
         public int Calls { get; private set; }
+        public int NameCalls { get; private set; }
+        public bool Names { get; init; }
+        public bool ProvidesDisplayNames => Names;
+        public Task<IReadOnlyDictionary<string, string>> GetDisplayNamesAsync(string query, CancellationToken cancellationToken)
+        {
+            NameCalls++;
+            return Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [query] = "Display " + query });
+        }
         public string Id => id;
         public string DisplayName => id;
         public ProviderCapabilities Capabilities { get; } = new(true, true, true, false);
