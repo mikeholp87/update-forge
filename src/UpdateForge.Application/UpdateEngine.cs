@@ -26,29 +26,41 @@ public sealed class UpdateEngine(
 {
     /// <param name="softCancel">Stops starting new updates; the running installer is allowed to finish.</param>
     /// <param name="hardCancel">Also terminates the running installer. Can leave a partial install; use sparingly.</param>
+    /// <param name="maxParallel">
+    /// Maximum concurrent updates for providers that tolerate it (WinGet). Every other provider is always serial, because
+    /// Chocolatey and Scoop take package-manager-wide locks. Overlapping Windows Installer (MSI) runs are retried by the provider.
+    /// </param>
+    public Task<IReadOnlyList<UpdateItemResult>> RunAsync(
+        IReadOnlyList<InstalledApplication> apps, UpdatePolicySettings policy, bool unattended,
+        IProgress<EngineProgress>? progress, CancellationToken softCancel, CancellationToken hardCancel = default) =>
+        RunAsync(apps, policy, unattended, progress, 1, softCancel, hardCancel);
+
+    /// <inheritdoc cref="RunAsync(IReadOnlyList{InstalledApplication}, UpdatePolicySettings, bool, IProgress{EngineProgress}?, CancellationToken, CancellationToken)"/>
     public async Task<IReadOnlyList<UpdateItemResult>> RunAsync(
         IReadOnlyList<InstalledApplication> apps, UpdatePolicySettings policy, bool unattended,
-        IProgress<EngineProgress>? progress, CancellationToken softCancel, CancellationToken hardCancel = default)
+        IProgress<EngineProgress>? progress, int maxParallel, CancellationToken softCancel, CancellationToken hardCancel = default)
     {
         using var held = engineLock.TryAcquire() ?? throw new EngineBusyException();
         var recovered = await jobs.RecoverInterruptedAsync(CancellationToken.None).ConfigureAwait(false);
         foreach (var r in recovered) log.LogWarning("Recovered interrupted job {Id} for {App}; marked Failed (outcome unknown).", r.Id, r.ApplicationName);
 
         var batch = Guid.NewGuid();
-        var results = new List<UpdateItemResult>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var total = apps.Count;
-        var index = 0;
+        var results = new UpdateItemResult?[total];
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var runnable = new List<(int Slot, InstalledApplication App, Core.Providers.IUpdateProvider Provider)>();
 
-        foreach (var app in apps)
+        // Pass 1 (sequential, cheap): dedupe, cancellation and policy decide which items actually need an installer.
+        for (var slot = 0; slot < total; slot++)
         {
-            index++;
-            void Report(JobState s, string m, double? f = null) => progress?.Report(new EngineProgress(app.Id, app.Name, s, m, index, total, f));
+            var app = apps[slot];
+            var index = slot + 1;
+            void Report(JobState s, string m) => progress?.Report(new EngineProgress(app.Id, app.Name, s, m, index, total, null));
 
-            if (!seen.Add(app.Id)) { results.Add(new(app, JobState.Skipped, null, "Duplicate request ignored.")); continue; }
+            if (!seen.Add(app.Id)) { results[slot] = new(app, JobState.Skipped, null, "Duplicate request ignored."); continue; }
             if (softCancel.IsCancellationRequested)
             {
-                results.Add(new(app, JobState.Canceled, null, "Canceled before starting."));
+                results[slot] = new(app, JobState.Canceled, null, "Canceled before starting.");
                 Report(JobState.Canceled, "Canceled before starting.");
                 continue;
             }
@@ -62,7 +74,7 @@ public sealed class UpdateEngine(
                     PolicyVerdict.NeedsApproval or PolicyVerdict.Unsupported => JobState.ManualActionRequired,
                     _ => JobState.Blocked,
                 };
-                results.Add(new(app, state, null, decision.Reason));
+                results[slot] = new(app, state, null, decision.Reason);
                 Report(state, decision.Reason);
                 continue;
             }
@@ -70,14 +82,49 @@ public sealed class UpdateEngine(
             var provider = registry.Find(app.ProviderId);
             if (provider is null || !provider.Capabilities.CanUpdate)
             {
-                results.Add(new(app, JobState.ManualActionRequired, null, "No update provider available."));
+                results[slot] = new(app, JobState.ManualActionRequired, null, "No update provider available.");
                 Report(JobState.ManualActionRequired, "No update provider available.");
                 continue;
             }
-
-            results.Add(await RunOneAsync(app, provider, batch, Report, hardCancel).ConfigureAwait(false));
+            runnable.Add((slot, app, provider));
         }
-        return results;
+
+        // Pass 2: run installers. A global slot limit bounds total concurrency; a per-provider gate keeps non-WinGet providers serial.
+        var limit = Math.Clamp(maxParallel, 1, 8);
+        using var globalGate = new SemaphoreSlim(limit);
+        var providerGates = runnable.Select(r => r.Provider.Id).Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(id => id, id => new SemaphoreSlim(id.Equals("winget", StringComparison.OrdinalIgnoreCase) ? limit : 1), StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            await Task.WhenAll(runnable.Select(async item =>
+            {
+                var (slot, app, provider) = item;
+                var index = slot + 1;
+                void Report(JobState s, string m, double? f = null) => progress?.Report(new EngineProgress(app.Id, app.Name, s, m, index, total, f));
+
+                var gate = providerGates[provider.Id];
+                await gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    await globalGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                    try
+                    {
+                        if (softCancel.IsCancellationRequested)
+                        {
+                            results[slot] = new(app, JobState.Canceled, null, "Canceled before starting.");
+                            Report(JobState.Canceled, "Canceled before starting.");
+                            return;
+                        }
+                        results[slot] = await RunOneAsync(app, provider, batch, Report, hardCancel).ConfigureAwait(false);
+                    }
+                    finally { globalGate.Release(); }
+                }
+                finally { gate.Release(); }
+            })).ConfigureAwait(false);
+        }
+        finally { foreach (var g in providerGates.Values) g.Dispose(); }
+
+        return results.Select(r => r!).ToList();
     }
 
     private async Task<UpdateItemResult> RunOneAsync(

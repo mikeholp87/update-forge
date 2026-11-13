@@ -20,6 +20,8 @@ public sealed record AppSettings
     public bool RunOnBattery { get; init; }
     public bool RunOnMeteredConnection { get; init; }
     public bool RetryFailedUpdates { get; init; } = true;
+    /// <summary>How many WinGet updates may install at once when you click Update (1 = one at a time).</summary>
+    public int MaxParallelUpdates { get; init; } = 3;
     /// <summary>Tray "Pause automatic updates": scheduled runs scan but never install while true.</summary>
     public bool AutomaticPaused { get; init; }
     public bool MinimizeToTray { get; init; }
@@ -43,6 +45,7 @@ public sealed record AppSettings
             Mode = mode,
             Interval = Enum.IsDefined(Interval) ? Interval : ScanInterval.Daily,
             CustomIntervalHours = Math.Clamp(CustomIntervalHours, 1, 24 * 30),
+            MaxParallelUpdates = Math.Clamp(MaxParallelUpdates, 1, 4),
             Theme = Theme is "Light" or "Dark" ? Theme : "System",
             EnabledProviders = [.. EnabledProviders.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase)],
         };

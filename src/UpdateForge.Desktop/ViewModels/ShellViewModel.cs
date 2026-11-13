@@ -198,7 +198,7 @@ public sealed partial class ShellViewModel : ObservableObject
             };
 
             // Explicit user click: unattended=false. Cancel Pending is a soft cancel; running installers finish.
-            var results = await Task.Run(() => _engine.RunAsync(targets, policy, false, progress, _softCancel.Token));
+            var results = await Task.Run(() => _engine.RunAsync(targets, policy, false, progress, _settings.MaxParallelUpdates, _softCancel.Token));
             _failedIds = results.Where(r => r.FinalState is JobState.Failed or JobState.Blocked).Select(r => r.Application.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var done = results.Count(r => r.FinalState == JobState.Completed);
             var failed = results.Count(r => r.FinalState is JobState.Failed or JobState.Blocked);

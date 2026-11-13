@@ -17,6 +17,8 @@ public sealed partial class WinGetProvider : IUpdateProvider
     public const string ProviderKey = "winget";
     private static readonly string[] AllowedSources = ["winget", "msstore"];
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromMinutes(3);
+    // Parallel updates can collide on the single Windows Installer lock; wait and retry rather than failing the update.
+    private const int MaxInstallerBusyAttempts = 5;
     private static readonly TimeSpan InstallTimeout = TimeSpan.FromMinutes(30);
 
     private readonly IProcessRunner _runner;
@@ -157,17 +159,17 @@ public sealed partial class WinGetProvider : IUpdateProvider
         try
         {
             UpdateResult result = default!;
-            for (var attempt = 1; attempt <= 2; attempt++)
+            for (var attempt = 1; attempt <= MaxInstallerBusyAttempts; attempt++)
             {
                 var r = await _runner.RunAsync(new ProcessSpec(_exe, args, InstallTimeout, line => ReportLine(line, progress)), cancellationToken).ConfigureAwait(false);
                 if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "The installer timed out and was stopped.");
                 var details = Tail(r.StdOut);
                 result = WinGetExitCodes.Map(r.ExitCode, details, _isElevated());
                 // Another installer (often the Windows Installer service or a Store update) holds the lock: wait once and retry.
-                if (attempt == 1 && result.Error == ErrorCategory.InstallerRunning)
+                if (attempt < MaxInstallerBusyAttempts && result.Error == ErrorCategory.InstallerRunning)
                 {
-                    progress.Report(new UpdateProgress("Another installation is in progress; waiting to retry…", null, "Waiting"));
-                    await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+                    progress.Report(new UpdateProgress("Another installation is in progress; waiting to retry ("+attempt+")…", null, "Waiting"));
+                    await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
                     continue;
                 }
                 if (result.Error == ErrorCategory.ApplicationInUse && LockingProcesses(details) is { Length: > 0 } names)

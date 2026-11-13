@@ -156,7 +156,7 @@ internal static class Program
         };
 
         var progress = new Progress<EngineProgress>(p => { if (!json) Console.Error.WriteLine($"[{p.Index}/{p.Total}] {p.ApplicationName}: {p.State} - {p.Message}"); });
-        var results = await sp.GetRequiredService<UpdateEngine>().RunAsync(targets, policy, unattended: false, progress, ct, HardCancel.Token);
+        var results = await sp.GetRequiredService<UpdateEngine>().RunAsync(targets, policy, unattended: false, progress, settings.MaxParallelUpdates, ct, HardCancel.Token);
 
         if (json)
             Console.WriteLine(JsonSerializer.Serialize(results.Select(r => new { r.Application.Id, r.Application.Name, State = r.FinalState.ToString(), r.Message, ExitCode = r.Result?.ExitCode, VersionAfter = r.Result?.VersionAfter }), JsonOut));
