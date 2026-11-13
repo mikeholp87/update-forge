@@ -275,6 +275,23 @@
       .shot {
         margin: 0;
       }
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        filter: var(--shadow);
+      }
+      .shots,
+      .status {
+        padding: 72px 0 0;
+      }
+      .shots-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 40px;
+      }
       .shot figcaption {
         margin-top: 14px;
         color: var(--muted);
@@ -291,7 +308,7 @@
       }
       .labels li {
         display: grid;
-        grid-template-columns: 150px minmax(0, 1fr);
+        grid-template-columns: 180px minmax(0, 1fr);
         gap: 16px;
         align-items: baseline;
         padding: 16px 0;
@@ -612,12 +629,15 @@
           gap: 6px;
         }
         .features,
+        .shots,
+        .status,
         .platforms,
         .faq,
         .privacy {
           padding-top: 52px;
         }
         .grid,
+        .shots-grid,
         .privacy-grid {
           grid-template-columns: 1fr;
         }
@@ -647,6 +667,7 @@
         >
         <nav class="nav" aria-label="Main navigation">
           <a class="hide-sm" href="#features">Features</a>
+          <a class="hide-sm" href="#screenshots">Screenshots</a>
           <a class="hide-sm" href="#safety">Safety</a>
           <a href="#install">Install</a>
           <a class="hide-sm" href="#faq">FAQ</a>
@@ -675,29 +696,14 @@
             </ul>
           </div>
           <figure class="shot">
-            <ul class="labels" aria-label="The five update statuses">
-              <li>
-                <span class="chip ok">Update ready</span>
-                <span>A newer version exists and Update Forge can install it for you.</span>
-              </li>
-              <li>
-                <span class="chip warn">Approval required</span>
-                <span>Needs administrator rights or your confirmation, so it is never done silently.</span>
-              </li>
-              <li>
-                <span class="chip info">Manual update</span>
-                <span>A newer version exists, but it has to be installed by hand.</span>
-              </li>
-              <li>
-                <span class="chip neutral">No update method</span>
-                <span>Found on your PC, but no package manager can update it.</span>
-              </li>
-              <li>
-                <span class="chip neutral">Unknown</span>
-                <span>The installed version cannot be compared safely, so it is not called "newer".</span>
-              </li>
-            </ul>
-            <figcaption>Every application gets one honest label. Nothing is guessed.</figcaption>
+            <img
+              src="./assets/dashboard-dark.png"
+              width="1360"
+              height="495"
+              fetchpriority="high"
+              alt="The Update Forge dashboard after a scan: 140 installed applications, 2 updates available, 50 up to date and 62 that require attention, with Claude Code and PowerShell listed as Update ready"
+            />
+            <figcaption>The dashboard after a scan. Updates ready to install are listed with one click each.</figcaption>
           </figure>
         </section>
 
@@ -771,6 +777,64 @@
               <span class="tag">WPF and CLI</span>
             </article>
           </div>
+        </section>
+
+        <section id="screenshots" class="shots" aria-labelledby="shots-title">
+          <div class="section-head">
+            <h2 id="shots-title">See what is installed and what changed</h2>
+            <p>Search every application on the PC, and keep a history of each update with its result.</p>
+          </div>
+          <div class="shots-grid">
+            <figure class="shot">
+              <img
+                src="./assets/installed-dark.png"
+                width="1360"
+                height="542"
+                loading="lazy"
+                alt="The Installed applications page filtered to Visual, listing Microsoft Visual C++ runtimes and Visual Studio components with their versions, sources and Up to date status"
+              />
+              <figcaption>Installed applications, searched and filtered, each with its source and status.</figcaption>
+            </figure>
+            <figure class="shot">
+              <img
+                src="./assets/history-dark.png"
+                width="1360"
+                height="309"
+                loading="lazy"
+                alt="The Update history page listing two Microsoft Visual C++ Redistributable updates and a Visual Studio Build Tools update, all Completed through winget with exit code 0"
+              />
+              <figcaption>Update history with previous and new versions, duration, result and exit code.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section id="status" class="status" aria-labelledby="status-title">
+          <div class="section-head">
+            <h2 id="status-title">One honest label per app</h2>
+            <p>Every application gets exactly one status, so you always know what Update Forge can do and what it cannot.</p>
+          </div>
+          <ul class="labels" aria-label="The five update statuses">
+              <li>
+                <span class="chip ok">Update ready</span>
+                <span>A newer version exists and Update Forge can install it for you.</span>
+              </li>
+              <li>
+                <span class="chip warn">Approval required</span>
+                <span>Needs administrator rights or your confirmation, so it is never done silently.</span>
+              </li>
+              <li>
+                <span class="chip info">Manual update</span>
+                <span>A newer version exists, but it has to be installed by hand.</span>
+              </li>
+              <li>
+                <span class="chip neutral">No update method</span>
+                <span>Found on your PC, but no package manager can update it.</span>
+              </li>
+              <li>
+                <span class="chip neutral">Unknown</span>
+                <span>The installed version cannot be compared safely, so it is not called "newer".</span>
+              </li>
+            </ul>
         </section>
 
         <section id="safety" class="privacy" aria-labelledby="safety-title">
