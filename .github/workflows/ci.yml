@@ -18,7 +18,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Restore
-        run: dotnet restore UpdateForge.sln --locked-mode:$false
+        run: dotnet restore UpdateForge.sln
       - name: Build (warnings are errors; includes static analysis)
         run: dotnet build UpdateForge.sln -c Release --no-restore
       - name: Test
