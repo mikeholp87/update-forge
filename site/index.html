@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#edeff5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)" />
+    <title>Update Forge: a free, private software updater for Windows</title>
+    <meta
+      name="description"
+      content="Update Forge is a free, open source software updater for Windows 11. It finds what is installed, shows which apps have a newer version, and installs updates through WinGet, Scoop and Chocolatey, on demand or on a schedule. No telemetry, no accounts."
+    />
+    <link rel="canonical" href="https://mikeholp87.github.io/update-forge/" />
+    <link rel="icon" href="./assets/icon-72.png" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/icon-180.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Update Forge" />
+    <meta property="og:title" content="Update Forge: keep every Windows app up to date" />
+    <meta
+      property="og:description"
+      content="A free, open source software updater for Windows 11. Honest update status, verified installs, optional schedule. No telemetry, no accounts."
+    />
+    <meta property="og:url" content="https://mikeholp87.github.io/update-forge/" />
+    <meta property="og:image" content="https://mikeholp87.github.io/update-forge/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Update Forge: keep every Windows app up to date. Free and open source, no telemetry, no accounts." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Update Forge: keep every Windows app up to date" />
+    <meta
+      name="twitter:description"
+      content="A free, open source software updater for Windows 11. Honest update status, verified installs, optional schedule. No telemetry, no accounts."
+    />
+    <meta name="twitter:image" content="https://mikeholp87.github.io/update-forge/assets/og.png" />
+    <meta name="twitter:image:alt" content="Update Forge: keep every Windows app up to date. Free and open source, no telemetry, no accounts." />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Update Forge",
+        "description": "A software updater for Windows 11 that inventories installed applications and installs updates through WinGet, Scoop and Chocolatey.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Windows 11, Windows 10 (2004 and later)",
+        "url": "https://mikeholp87.github.io/update-forge/",
+        "downloadUrl": "https://github.com/mikeholp87/update-forge",
+        "license": "https://github.com/mikeholp87/update-forge/blob/main/LICENSE",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "Mike Holp" }
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #edeff5;
+        --paper: #fff;
+        --soft: #f6f7fb;
+        --ink: #14161f;
+        --muted: #4b5167;
+        --line: #d9ddea;
+        --blue: #4350e0;
+        --blue-ink: #3641c4;
+        --on-blue: #fff;
+        --green: #066a4a;
+        --amber: #8a5a00;
+        --code-bg: #171a26;
+        --code-ink: #e8eaf4;
+        --shadow: drop-shadow(0 24px 40px rgba(20, 22, 31, 0.28));
+        font-family:
+          Inter,
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        scroll-behavior: smooth;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1117;
+          --paper: #171a23;
+          --soft: #1b1f2a;
+          --ink: #eef0f7;
+          --muted: #a9afc4;
+          --line: #2a2f3d;
+          --blue: #8b95ff;
+          --blue-ink: #a3abff;
+          --on-blue: #0f1117;
+          --green: #4cd3a1;
+          --amber: #f0b95a;
+          --code-bg: #0a0c12;
+          --shadow: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.7));
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          scroll-behavior: auto;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+      }
+      a {
+        color: var(--blue-ink);
+        text-underline-offset: 0.2em;
+      }
+      a:focus-visible,
+      button:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+      .skip {
+        position: absolute;
+        left: 12px;
+        top: -60px;
+        z-index: 10;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: var(--blue);
+        color: var(--on-blue);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      .wrap {
+        width: min(1080px, calc(100% - 40px));
+        margin: auto;
+      }
+      header {
+        height: 84px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-size: 20px;
+        font-weight: 750;
+        letter-spacing: -0.03em;
+        text-decoration: none;
+      }
+      .brand img {
+        width: 36px;
+        height: 36px;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .nav a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .nav a:hover {
+        color: var(--blue-ink);
+        text-decoration: underline;
+      }
+      .nav .pill {
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--paper);
+      }
+      main {
+        padding-top: 56px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 56px;
+        align-items: center;
+        padding: 24px 0 72px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 750;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(40px, 5.6vw, 68px);
+        line-height: 1;
+        letter-spacing: -0.055em;
+      }
+      .lead {
+        max-width: 34em;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.65;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 46px;
+        padding: 0 20px;
+        border: 1px solid var(--blue);
+        border-radius: 8px;
+        background: var(--blue);
+        color: var(--on-blue);
+        font-size: 15px;
+        font-weight: 750;
+        text-decoration: none;
+      }
+      .button:hover {
+        filter: brightness(1.08);
+      }
+      .button.secondary {
+        border-color: var(--line);
+        background: var(--paper);
+        color: var(--ink);
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 26px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .badges li {
+        padding: 5px 11px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--paper);
+        color: var(--muted);
+        font-size: 12.5px;
+        font-weight: 650;
+      }
+      .shot {
+        margin: 0;
+      }
+      .shot figcaption {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+      .labels {
+        margin: 0;
+        padding: 8px 24px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--paper);
+        list-style: none;
+        filter: var(--shadow);
+      }
+      .labels li {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 16px;
+        align-items: baseline;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .labels li:last-child {
+        border-bottom: 0;
+      }
+      .chip {
+        display: inline-block;
+        justify-self: start;
+        padding: 3px 11px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        font-size: 12.5px;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+      .chip.ok {
+        color: var(--green);
+      }
+      .chip.warn {
+        color: var(--amber);
+      }
+      .chip.info {
+        color: var(--blue-ink);
+      }
+      .chip.neutral {
+        color: var(--muted);
+      }
+      section {
+        scroll-margin-top: 24px;
+      }
+      .section-head {
+        max-width: 640px;
+        margin-bottom: 32px;
+      }
+      h2 {
+        margin: 0;
+        font-size: clamp(26px, 3.2vw, 36px);
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+      }
+      .section-head p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.65;
+      }
+      .features,
+      .platforms,
+      .faq,
+      .privacy {
+        padding: 72px 0 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .card {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        letter-spacing: -0.02em;
+      }
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .card .tag {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--muted);
+        font-size: 11.5px;
+        font-weight: 700;
+      }
+      .card code,
+      .steps p code,
+      td code,
+      details code,
+      .fine code {
+        font:
+          12.5px ui-monospace,
+          "SFMono-Regular",
+          Menlo,
+          Consolas,
+          monospace;
+        white-space: nowrap;
+      }
+      kbd {
+        padding: 1px 6px;
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        background: var(--soft);
+        color: var(--ink);
+        font:
+          600 11.5px/1.6 ui-monospace,
+          "SFMono-Regular",
+          Menlo,
+          Consolas,
+          monospace;
+        white-space: nowrap;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      td:first-child {
+        color: var(--ink);
+        font-weight: 650;
+      }
+      .install {
+        margin-top: 72px;
+        padding: 40px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--paper);
+      }
+      .install > .section-head {
+        margin-bottom: 24px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: step;
+      }
+      .steps > li {
+        position: relative;
+        padding-left: 46px;
+        counter-increment: step;
+      }
+      .steps > li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: -2px;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--blue);
+        color: var(--on-blue);
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .steps h3 {
+        margin: 0 0 6px;
+        font-size: 16px;
+        letter-spacing: -0.02em;
+      }
+      .steps p {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .codebox {
+        position: relative;
+      }
+      .code {
+        margin: 0;
+        padding: 20px 76px 20px 20px;
+        overflow-x: auto;
+        border-radius: 10px;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        font:
+          13px/1.7 ui-monospace,
+          "SFMono-Regular",
+          Menlo,
+          Consolas,
+          monospace;
+        tab-size: 2;
+      }
+      .copy {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #e8eaf4;
+        font: 700 12px/1 inherit;
+        cursor: pointer;
+      }
+      .copy:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+      .fine {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .privacy-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      details {
+        border-bottom: 1px solid var(--line);
+      }
+      details:first-of-type {
+        border-top: 1px solid var(--line);
+      }
+      summary {
+        padding: 18px 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      details p {
+        max-width: 70ch;
+        margin: 0 0 18px;
+        padding: 0 4px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+      footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px 24px;
+        margin-top: 80px;
+        padding: 24px 0 36px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 20px;
+      }
+      @media (max-width: 960px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 760px) {
+        .wrap {
+          width: min(100% - 32px, 540px);
+        }
+        header {
+          height: 70px;
+        }
+        .nav {
+          gap: 14px;
+          font-size: 13px;
+        }
+        .nav .hide-sm {
+          display: none;
+        }
+        main {
+          padding-top: 32px;
+        }
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 32px;
+          padding: 12px 0 48px;
+        }
+        .labels {
+          padding: 4px 18px;
+        }
+        .labels li {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+        .features,
+        .platforms,
+        .faq,
+        .privacy {
+          padding-top: 52px;
+        }
+        .grid,
+        .privacy-grid {
+          grid-template-columns: 1fr;
+        }
+        .install {
+          margin-top: 52px;
+          padding: 24px 18px;
+        }
+        .steps > li {
+          padding-left: 0;
+          padding-top: 40px;
+        }
+        .steps > li::before {
+          top: 0;
+        }
+        .code {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <div class="wrap">
+      <header>
+        <a class="brand" href="./" aria-label="Update Forge home"
+          ><img src="./assets/icon-72.png" alt="" width="36" height="36" />Update Forge</a
+        >
+        <nav class="nav" aria-label="Main navigation">
+          <a class="hide-sm" href="#features">Features</a>
+          <a class="hide-sm" href="#safety">Safety</a>
+          <a href="#install">Install</a>
+          <a class="hide-sm" href="#faq">FAQ</a>
+          <a class="pill" href="https://github.com/mikeholp87/update-forge">GitHub</a>
+        </nav>
+      </header>
+      <main id="content">
+        <section class="hero" aria-labelledby="hero-title">
+          <div>
+            <div class="eyebrow">Free and open source software updater</div>
+            <h1 id="hero-title">Keep every app up to date.</h1>
+            <p class="lead">
+              Update Forge finds the software installed on your Windows PC, shows which apps have a
+              newer version, and installs updates through trusted package managers, on demand or on a
+              schedule. It tells you plainly what it can and cannot update.
+            </p>
+            <div class="actions">
+              <a class="button" href="#install">Get started</a>
+              <a class="button secondary" href="https://github.com/mikeholp87/update-forge">View on GitHub</a>
+            </div>
+            <ul class="badges" aria-label="Highlights">
+              <li>MIT licensed</li>
+              <li>No telemetry</li>
+              <li>No accounts or ads</li>
+              <li>Windows 11</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <ul class="labels" aria-label="The five update statuses">
+              <li>
+                <span class="chip ok">Update ready</span>
+                <span>A newer version exists and Update Forge can install it for you.</span>
+              </li>
+              <li>
+                <span class="chip warn">Approval required</span>
+                <span>Needs administrator rights or your confirmation, so it is never done silently.</span>
+              </li>
+              <li>
+                <span class="chip info">Manual update</span>
+                <span>A newer version exists, but it has to be installed by hand.</span>
+              </li>
+              <li>
+                <span class="chip neutral">No update method</span>
+                <span>Found on your PC, but no package manager can update it.</span>
+              </li>
+              <li>
+                <span class="chip neutral">Unknown</span>
+                <span>The installed version cannot be compared safely, so it is not called "newer".</span>
+              </li>
+            </ul>
+            <figcaption>Every application gets one honest label. Nothing is guessed.</figcaption>
+          </figure>
+        </section>
+
+        <section id="features" class="features" aria-labelledby="features-title">
+          <div class="section-head">
+            <h2 id="features-title">Every update in one place</h2>
+            <p>
+              One list for everything on the PC, whichever tool installed it, with updates that are
+              checked after they run.
+            </p>
+          </div>
+          <div class="grid">
+            <article class="card">
+              <h3>Finds what you have</h3>
+              <p>
+                Reads WinGet packages, the Windows uninstall registry (read-only), Microsoft Store and
+                MSIX apps, and Scoop and Chocolatey when they are installed.
+              </p>
+              <span class="tag">WinGet, Store, Scoop, Chocolatey</span>
+            </article>
+            <article class="card">
+              <h3>Honest status</h3>
+              <p>
+                An unknown version is never reported as newer, and Update Forge never invents
+                installers or switches. If it cannot update something, it says so.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Faster batches</h3>
+              <p>
+                Installs up to three WinGet updates at once (adjustable) and retries when Windows
+                Installer is busy. Other package managers run one at a time.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Checked after install</h3>
+              <p>
+                After each install it re-reads the installed version. A "success" that left the old
+                version in place is reported as a failure, not a win.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Survives interruptions</h3>
+              <p>
+                If the app closes mid-install, the next run compares the real installed version and
+                records what actually happened in your history.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Clear failures</h3>
+              <p>
+                When an app is open and its files are locked, you see which process to close. A
+                staged Store update says "reopen the app", not "failed".
+              </p>
+            </article>
+            <article class="card">
+              <h3>Runs on a schedule</h3>
+              <p>
+                A per-user Task Scheduler task scans even when the window is closed. In Automatic
+                Safe mode it installs only supported, non-elevated updates.
+              </p>
+              <span class="tag">Optional</span>
+            </article>
+            <article class="card">
+              <h3>App and command line</h3>
+              <p>
+                A Fluent desktop app with light and dark themes and a tray icon, plus
+                <code>updateforge-cli</code> with <code>scan</code>, <code>outdated</code>,
+                <code>update --all</code>, <code>history</code> and <code>--json</code>.
+              </p>
+              <span class="tag">WPF and CLI</span>
+            </article>
+          </div>
+        </section>
+
+        <section id="safety" class="privacy" aria-labelledby="safety-title">
+          <div class="section-head">
+            <h2 id="safety-title">Careful by default</h2>
+            <p>Updating software is a trust decision. Update Forge keeps its own behaviour small and checkable.</p>
+          </div>
+          <div class="privacy-grid">
+            <article class="card">
+              <h3>No telemetry</h3>
+              <p>
+                No accounts, no ads and no phoning home. Your inventory and history stay in a local
+                database on your PC.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Official tools only</h3>
+              <p>
+                It calls package-manager command lines at fixed paths with strictly validated
+                arguments. No shell strings, no <code>--force</code> and no hash bypass. Pins and
+                holds are respected.
+              </p>
+            </article>
+            <article class="card">
+              <h3>You stay in control</h3>
+              <p>
+                Manual mode is the default. It never restarts your PC automatically, and the
+                scheduled task never runs as SYSTEM and never elevates.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="platforms" class="platforms" aria-labelledby="platforms-title">
+          <div class="section-head">
+            <h2 id="platforms-title">What it can update</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Source</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>WinGet packages</td>
+                  <td>Discovery, update detection, pins and silent installs. Needs WinGet (App Installer).</td>
+                </tr>
+                <tr>
+                  <td>Chocolatey</td>
+                  <td>Supported when installed. Upgrades need administrator rights, so run Update Forge as administrator.</td>
+                </tr>
+                <tr>
+                  <td>Scoop</td>
+                  <td>Supported when installed. Global installs need administrator rights.</td>
+                </tr>
+                <tr>
+                  <td>Microsoft Store apps</td>
+                  <td>Listed, with a handoff to the Store. Windows has no supported way to update other apps for you.</td>
+                </tr>
+                <tr>
+                  <td>Other installed software</td>
+                  <td>Shown from the uninstall registry for inventory only. Update Forge will not guess an installer.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fine">
+            Built for Windows 11 x64. Windows 10 2004 and later is expected to work but is untested. ARM64 is not
+            supported yet.
+          </p>
+        </section>
+
+        <section id="install" class="install" aria-labelledby="install-title">
+          <div class="section-head">
+            <h2 id="install-title">Build and run it</h2>
+            <p>
+              Update Forge is a 0.1.0 release candidate and there is no packaged download yet. Until the
+              first release, build it from source in a few commands. A per-user MSI and a portable ZIP,
+              each with SHA-256 checksums, are planned for GitHub Releases.
+            </p>
+          </div>
+          <ol class="steps">
+            <li>
+              <h3>Install the prerequisites</h3>
+              <p>
+                You need Git, the .NET 10 SDK and WinGet (App Installer, included with Windows 11).
+              </p>
+              <div class="codebox">
+                <pre class="code" tabindex="0"><code>winget install Git.Git Microsoft.DotNet.SDK.10</code></pre>
+              </div>
+            </li>
+            <li>
+              <h3>Get the code and build it</h3>
+              <div class="codebox">
+                <pre class="code" tabindex="0"><code>git clone https://github.com/mikeholp87/update-forge.git
+cd update-forge
+dotnet build UpdateForge.CI.slnf -c Release</code></pre>
+              </div>
+            </li>
+            <li>
+              <h3>Run the app</h3>
+              <div class="codebox">
+                <pre class="code" tabindex="0"><code>dotnet run --project src/UpdateForge.Desktop -c Release</code></pre>
+              </div>
+              <p class="fine">
+                To update Chocolatey or system-wide packages, start it from an administrator terminal.
+              </p>
+            </li>
+            <li>
+              <h3>Or use the command line</h3>
+              <div class="codebox">
+                <pre class="code" tabindex="0"><code>dotnet run --project src/UpdateForge.Cli -c Release -- outdated
+dotnet run --project src/UpdateForge.Cli -c Release -- update --all</code></pre>
+              </div>
+              <p class="fine">
+                Add <code>--json</code> for scripts. Read the
+                <a href="https://github.com/mikeholp87/update-forge#known-limitations">known limitations</a>
+                before relying on it unattended.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        <section id="faq" class="faq" aria-labelledby="faq-title">
+          <div class="section-head">
+            <h2 id="faq-title">Questions</h2>
+          </div>
+          <details>
+            <summary>Does Update Forge collect or send any data?</summary>
+            <p>
+              No. There is no telemetry and no account. The only network traffic is your package
+              managers (WinGet and friends) fetching the updates you ask for.
+            </p>
+          </details>
+          <details>
+            <summary>Why did an update fail with "the application is running"?</summary>
+            <p>
+              An installer cannot replace files that a running program has open. Close the app named in
+              the message and retry. Some Store apps install fine but only apply the update the next
+              time you reopen them, which Update Forge shows as "restart required" instead of failed.
+            </p>
+          </details>
+          <details>
+            <summary>Do I need to run it as administrator?</summary>
+            <p>
+              Not for most WinGet updates. Chocolatey upgrades and some system-wide installers do need
+              it, and Update Forge leaves those as "approval required" unless you started it elevated. The
+              scheduled background run never elevates.
+            </p>
+          </details>
+          <details>
+            <summary>Will it restart my PC?</summary>
+            <p>
+              Never automatically. If an update needs a restart, Update Forge tells you and leaves the
+              timing to you.
+            </p>
+          </details>
+          <details>
+            <summary>Why is an app labelled "Manual update" or "No update method"?</summary>
+            <p>
+              Windows cannot update arbitrary third-party software. If no supported package manager
+              knows the app, or it needs interaction, Update Forge lists it without pretending it can
+              install anything.
+            </p>
+          </details>
+          <details>
+            <summary>Where are my logs, history and settings?</summary>
+            <p>
+              In <code>%LOCALAPPDATA%\UpdateForge</code>: the log files, and a local SQLite database with
+              your inventory and update history. Use the diagnostics export for a redacted ZIP that is
+              safe to attach to a bug report.
+            </p>
+          </details>
+          <details>
+            <summary>Where do I report a bug or a security issue?</summary>
+            <p>
+              Open an issue on
+              <a href="https://github.com/mikeholp87/update-forge/issues">GitHub</a>. Read the
+              <a href="https://github.com/mikeholp87/update-forge/blob/main/SECURITY.md">security policy</a>
+              first for anything sensitive.
+            </p>
+          </details>
+        </section>
+      </main>
+      <footer>
+        <span>Update Forge is free and open source under the MIT license.</span>
+        <nav aria-label="Footer">
+          <a href="https://github.com/mikeholp87/update-forge">GitHub</a>
+          <a href="https://github.com/mikeholp87/update-forge/issues">Issues</a>
+          <a href="https://github.com/mikeholp87/update-forge/blob/main/LICENSE">License</a>
+          <a href="https://github.com/mikeholp87/update-forge/blob/main/SECURITY.md">Security</a>
+          <a href="https://github.com/mikeholp87/update-forge/blob/main/CONTRIBUTING.md">Contributing</a>
+        </nav>
+      </footer>
+    </div>
+    <p id="copy-status" class="visually-hidden" role="status" aria-live="polite"></p>
+    <script>
+      var copyStatus = document.getElementById("copy-status");
+      document.querySelectorAll(".codebox").forEach(function (box) {
+        var code = box.querySelector("code");
+        if (!code || !navigator.clipboard) return;
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "copy";
+        button.textContent = "Copy";
+        button.setAttribute("aria-label", "Copy commands to clipboard");
+        button.addEventListener("click", function () {
+          navigator.clipboard.writeText(code.textContent).then(function () {
+            button.textContent = "Copied";
+            copyStatus.textContent = "Commands copied to clipboard";
+            setTimeout(function () {
+              button.textContent = "Copy";
+              copyStatus.textContent = "";
+            }, 1800);
+          });
+        });
+        box.appendChild(button);
+      });
+    </script>
+  </body>
+</html>

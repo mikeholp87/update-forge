@@ -1,5 +1,7 @@
 # UpdateForge
 
+Website: <https://mikeholp87.github.io/update-forge/>
+
 A free, open-source (MIT) software updater for Windows 11 and compatible Windows 10. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
 
 > **Status: 0.1.0 release candidate, not yet released.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
@@ -41,7 +43,7 @@ See [SECURITY.md](SECURITY.md). In short: official package-manager CLIs at fixed
 ## Build from source
 
 ```powershell
-dotnet build UpdateForge.sln -c Release
+dotnet build UpdateForge.CI.slnf -c Release   # everything except the MSI installer, which needs the publish step below
 dotnet test --project tests/UpdateForge.Core.Tests
 ./scripts/publish.ps1 -Version 0.1.0     # portable ZIP
 dotnet build src/UpdateForge.Installer/UpdateForge.Installer.wixproj -c Release -p:Version=0.1.0
