@@ -10,7 +10,8 @@ public sealed record HistoryRecord(
     string? PreviousVersion, string? RequestedVersion, string? NewVersion, JobState FinalState, TimeSpan Duration,
     int? ExitCode, ErrorCategory Error, bool RestartRequired, string? Message, string? TechnicalDetails);
 
-public sealed record JobItemRecord(long Id, string ApplicationId, string ApplicationName, string ProviderId, JobState State, DateTimeOffset UpdatedAt);
+public sealed record JobItemRecord(long Id, string ApplicationId, string ApplicationName, string ProviderId, JobState State, DateTimeOffset UpdatedAt,
+    string? PackageId = null, string? PackageSource = null, string? PreviousVersion = null, string? TargetVersion = null);
 
 public interface IInventoryStore
 {

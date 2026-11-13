@@ -172,6 +172,34 @@ public class EngineTests : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Interrupted_job_whose_install_actually_finished_is_recorded_as_completed()
+    {
+        var app = EngineFixture.App("fake:finished-anyway", installed: "1.0", available: "2.0");
+        var id = await _f.Jobs.CreateItemAsync(Guid.NewGuid(), app, JobState.Installing, CancellationToken.None);
+        _f.Provider.VersionAfter = "2.0";
+        await _f.Engine.RunAsync([], EngineFixture.Policy, false, null, CancellationToken.None); // recovery runs at the start of every run
+
+        Assert.Equal(JobState.Completed, (await _f.Jobs.GetRecentAsync(50, CancellationToken.None)).Single(r => r.Id == id).State);
+        var hist = (await _f.History.QueryAsync("fake:finished-anyway", 10, CancellationToken.None)).Single();
+        Assert.Equal(JobState.Completed, hist.FinalState);
+        Assert.Equal("2.0", hist.NewVersion);
+    }
+
+    [Fact]
+    public async Task Interrupted_job_with_unchanged_version_is_recorded_as_failed_with_history()
+    {
+        var app = EngineFixture.App("fake:never-finished", installed: "1.0", available: "2.0");
+        var id = await _f.Jobs.CreateItemAsync(Guid.NewGuid(), app, JobState.Installing, CancellationToken.None);
+        _f.Provider.VersionAfter = "1.0";
+        await _f.Engine.RunAsync([], EngineFixture.Policy, false, null, CancellationToken.None);
+
+        Assert.Equal(JobState.Failed, (await _f.Jobs.GetRecentAsync(50, CancellationToken.None)).Single(r => r.Id == id).State);
+        var hist = (await _f.History.QueryAsync("fake:never-finished", 10, CancellationToken.None)).Single();
+        Assert.Equal(JobState.Failed, hist.FinalState);
+        Assert.Equal(ErrorCategory.VerificationFailed, hist.Error);
+    }
+
+    [Fact]
     public async Task Unattended_manual_mode_never_installs()
     {
         _f.Provider.Updated.Clear();

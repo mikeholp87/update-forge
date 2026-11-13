@@ -140,8 +140,9 @@ public sealed class SqliteJobStore(Database db) : IJobStore
         using var tx = c.BeginTransaction();
         var now = Sql.Iso(DateTimeOffset.UtcNow);
         c.Cmd("INSERT OR IGNORE INTO UpdateJobs (Id,CreatedAt) VALUES ($j,$t);", tx, ("$j", batchId.ToString("D")), ("$t", now)).ExecuteNonQuery();
-        c.Cmd("INSERT INTO UpdateJobItems (JobId,ApplicationId,ApplicationName,ProviderId,State,UpdatedAt) VALUES ($j,$a,$n,$p,$s,$t);", tx,
-            ("$j", batchId.ToString("D")), ("$a", app.Id), ("$n", app.Name), ("$p", app.ProviderId), ("$s", (int)state), ("$t", now)).ExecuteNonQuery();
+        c.Cmd("INSERT INTO UpdateJobItems (JobId,ApplicationId,ApplicationName,ProviderId,State,UpdatedAt,PackageId,PackageSource,PreviousVersion,TargetVersion) VALUES ($j,$a,$n,$p,$s,$t,$pk,$ps,$pv,$tv);", tx,
+            ("$j", batchId.ToString("D")), ("$a", app.Id), ("$n", app.Name), ("$p", app.ProviderId), ("$s", (int)state), ("$t", now),
+            ("$pk", app.PackageId), ("$ps", app.PackageSource), ("$pv", app.InstalledVersion), ("$tv", app.AvailableVersion)).ExecuteNonQuery();
         var id = Convert.ToInt64(Database.Scalar(c, tx, "SELECT last_insert_rowid();"), CultureInfo.InvariantCulture);
         tx.Commit();
         return Task.FromResult(id);
@@ -161,8 +162,8 @@ public sealed class SqliteJobStore(Database db) : IJobStore
         using var tx = c.BeginTransaction();
         var inFlight = new[] { JobState.Queued, JobState.Downloading, JobState.Verifying, JobState.Installing, JobState.VerifyingInstallation }.Select(s => (int)s).ToList();
         var list = new List<JobItemRecord>();
-        using (var r = c.Cmd($"SELECT Id,ApplicationId,ApplicationName,ProviderId,State,UpdatedAt FROM UpdateJobItems WHERE State IN ({string.Join(",", inFlight)});", tx).ExecuteReader())
-            while (r.Read()) list.Add(new JobItemRecord(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetString(3), (JobState)r.GetInt32(4), Sql.ParseIso(r.GetString(5))));
+        using (var r = c.Cmd($"SELECT Id,ApplicationId,ApplicationName,ProviderId,State,UpdatedAt,PackageId,PackageSource,PreviousVersion,TargetVersion FROM UpdateJobItems WHERE State IN ({string.Join(",", inFlight)});", tx).ExecuteReader())
+            while (r.Read()) list.Add(ReadItem(r));
         foreach (var item in list)
             c.Cmd("UPDATE UpdateJobItems SET State=$s,Message=$m,UpdatedAt=$t WHERE Id=$i;", tx,
                 ("$s", (int)JobState.Failed), ("$m", "Interrupted before completion; the outcome is unknown. Rescan to see the current version."),
@@ -171,12 +172,16 @@ public sealed class SqliteJobStore(Database db) : IJobStore
         return Task.FromResult<IReadOnlyList<JobItemRecord>>(list);
     }
 
+    private static JobItemRecord ReadItem(Microsoft.Data.Sqlite.SqliteDataReader r) =>
+        new(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetString(3), (JobState)r.GetInt32(4), Sql.ParseIso(r.GetString(5)),
+            r.IsDBNull(6) ? null : r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7), r.IsDBNull(8) ? null : r.GetString(8), r.IsDBNull(9) ? null : r.GetString(9));
+
     public Task<IReadOnlyList<JobItemRecord>> GetRecentAsync(int limit, CancellationToken ct)
     {
         using var c = db.Open();
-        using var r = c.Cmd("SELECT Id,ApplicationId,ApplicationName,ProviderId,State,UpdatedAt FROM UpdateJobItems ORDER BY Id DESC LIMIT $l;", null, ("$l", limit)).ExecuteReader();
+        using var r = c.Cmd("SELECT Id,ApplicationId,ApplicationName,ProviderId,State,UpdatedAt,PackageId,PackageSource,PreviousVersion,TargetVersion FROM UpdateJobItems ORDER BY Id DESC LIMIT $l;", null, ("$l", limit)).ExecuteReader();
         var list = new List<JobItemRecord>();
-        while (r.Read()) list.Add(new JobItemRecord(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetString(3), (JobState)r.GetInt32(4), Sql.ParseIso(r.GetString(5))));
+        while (r.Read()) list.Add(ReadItem(r));
         return Task.FromResult<IReadOnlyList<JobItemRecord>>(list);
     }
 }

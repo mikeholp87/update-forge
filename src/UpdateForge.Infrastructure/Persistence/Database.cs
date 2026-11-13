@@ -66,6 +66,13 @@ public sealed class Database
         CREATE TABLE Schedules (Id INTEGER PRIMARY KEY AUTOINCREMENT, Kind TEXT NOT NULL, Definition TEXT NOT NULL, Enabled INTEGER NOT NULL DEFAULT 1);
         CREATE TABLE Settings (Key TEXT PRIMARY KEY, Value TEXT NOT NULL);
         """,
+        // v2: remember what each job was doing so an interrupted job can be verified against the real installed version.
+        """
+        ALTER TABLE UpdateJobItems ADD COLUMN PackageId TEXT;
+        ALTER TABLE UpdateJobItems ADD COLUMN PackageSource TEXT;
+        ALTER TABLE UpdateJobItems ADD COLUMN PreviousVersion TEXT;
+        ALTER TABLE UpdateJobItems ADD COLUMN TargetVersion TEXT;
+        """,
     ];
 
     public void Migrate()

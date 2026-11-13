@@ -42,7 +42,7 @@ public sealed class UpdateEngine(
     {
         using var held = engineLock.TryAcquire() ?? throw new EngineBusyException();
         var recovered = await jobs.RecoverInterruptedAsync(CancellationToken.None).ConfigureAwait(false);
-        foreach (var r in recovered) log.LogWarning("Recovered interrupted job {Id} for {App}; marked Failed (outcome unknown).", r.Id, r.ApplicationName);
+        foreach (var r in recovered) await ResolveInterruptedAsync(r).ConfigureAwait(false);
 
         var batch = Guid.NewGuid();
         var total = apps.Count;
@@ -203,6 +203,51 @@ public sealed class UpdateEngine(
 
         report(finalState, message, 1);
         return new UpdateItemResult(app, finalState, result with { VersionAfter = versionAfter }, message);
+    }
+
+    /// <summary>
+    /// A job left in flight (app closed or crashed mid-install) is checked against the real installed version instead of
+    /// being reported as "unknown": an install that actually finished is recorded as Completed, and every case gets a history row.
+    /// </summary>
+    private async Task ResolveInterruptedAsync(JobItemRecord job)
+    {
+        var finalState = JobState.Failed;
+        var error = ErrorCategory.Unknown;
+        string? versionNow = null;
+        var message = "Interrupted before completion; the outcome could not be checked. Rescan to see the current version.";
+
+        var provider = registry.Find(job.ProviderId);
+        if (provider is not null && !string.IsNullOrEmpty(job.PackageId))
+        {
+            var probe = new InstalledApplication
+            {
+                Id = job.ApplicationId, Name = job.ApplicationName, ProviderId = job.ProviderId, PackageId = job.PackageId,
+                PackageSource = job.PackageSource, InstalledVersion = job.PreviousVersion, AvailableVersion = job.TargetVersion,
+            };
+            versionNow = await TryVerifyAsync(provider, probe).ConfigureAwait(false);
+            if (versionNow is not null && job.PreviousVersion is not null)
+            {
+                if (AppVersion.Compare(job.PreviousVersion, versionNow) == VersionOrder.Older)
+                {
+                    var reachedTarget = job.TargetVersion is null || AppVersion.Compare(versionNow, job.TargetVersion) != VersionOrder.Older;
+                    finalState = reachedTarget ? JobState.Completed : JobState.Failed;
+                    error = reachedTarget ? ErrorCategory.None : ErrorCategory.VerificationFailed;
+                    message = reachedTarget
+                        ? $"UpdateForge was closed during the install, but version {versionNow} is now installed."
+                        : $"UpdateForge was closed during the install; version {versionNow} is installed but {job.TargetVersion} was expected.";
+                }
+                else
+                {
+                    error = ErrorCategory.VerificationFailed;
+                    message = $"UpdateForge was closed during the install; the installed version is still {versionNow}. Retry the update.";
+                }
+            }
+        }
+
+        log.LogWarning("Recovered interrupted job {Id} for {App}: {State} ({Message})", job.Id, job.ApplicationName, finalState, message);
+        await jobs.SetStateAsync(job.Id, finalState, message, CancellationToken.None).ConfigureAwait(false);
+        await history.AddAsync(new HistoryRecord(0, DateTimeOffset.UtcNow, job.ApplicationId, job.ApplicationName, job.ProviderId, job.PreviousVersion,
+            job.TargetVersion, versionNow, finalState, TimeSpan.Zero, null, error, false, message, null), CancellationToken.None).ConfigureAwait(false);
     }
 
     private async Task<string?> TryVerifyAsync(Core.Providers.IUpdateProvider provider, InstalledApplication app)
