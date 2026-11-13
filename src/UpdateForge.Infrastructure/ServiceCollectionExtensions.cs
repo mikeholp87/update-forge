@@ -61,6 +61,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISettingsStore, SqliteSettingsStore>();
         services.AddSingleton<IEngineLock, MutexEngineLock>();
         services.AddSingleton<ProviderRegistry>();
+        services.AddSingleton<PackageManagerService>();
+        services.AddSingleton<PackageSearchService>();
         services.AddSingleton<InventoryService>();
         services.AddSingleton<UpdateEngine>();
         services.AddSingleton<BundleService>();

@@ -54,7 +54,7 @@ public static class ScoopParsing
 /// with typed arguments and no execution-policy bypass. Held packages are reported as pinned and never updated.
 /// Not verified against a live Scoop installation in this repository's CI; see docs/PROVIDERS.md.
 /// </summary>
-public sealed partial class ScoopProvider : IUpdateProvider
+public sealed partial class ScoopProvider : IUpdateProvider, IPackageManager
 {
     public const string ProviderKey = "scoop";
     private readonly IProcessRunner _runner;
@@ -72,6 +72,16 @@ public sealed partial class ScoopProvider : IUpdateProvider
     }
 
     public string Id => ProviderKey;
+    public string ExecutablePath => _scoopScript;
+    public bool CanRefreshSources => true;
+
+    public async Task<string> GetSourcesAsync(CancellationToken cancellationToken) =>
+        PackageManagerOutput.RequireSuccess(await _runner.RunAsync(Spec(TimeSpan.FromMinutes(1), null,
+            "bucket", "list"), cancellationToken).ConfigureAwait(false), "List Scoop buckets");
+
+    public async Task<string> RefreshSourcesAsync(CancellationToken cancellationToken) =>
+        PackageManagerOutput.RequireSuccess(await _runner.RunAsync(Spec(TimeSpan.FromMinutes(5), null,
+            "update"), cancellationToken).ConfigureAwait(false), "Update Scoop and buckets");
     public string DisplayName => "Scoop";
     public ProviderCapabilities Capabilities { get; } = new(true, true, true, SupportsPins: true);
 

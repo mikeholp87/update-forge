@@ -32,18 +32,26 @@
                 <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavApplications}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Applications}"
                            Icon="{ui:SymbolIcon AppsList24}" Content="Installed applications" AutomationProperties.Name="Go to Installed applications" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavDiscover}"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Discover}"
+                           Icon="{ui:SymbolIcon Search24}" Content="Discover packages" AutomationProperties.Name="Go to Discover packages" />
                 <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavQueue}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Queue}"
                            Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update queue" AutomationProperties.Name="Go to Update queue" />
                 <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavHistory}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.History}"
                            Icon="{ui:SymbolIcon History24}" Content="History" AutomationProperties.Name="Go to History" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavPackageManagers}"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.PackageManagers}"
+                           Icon="{ui:SymbolIcon Box24}" Content="Package managers" AutomationProperties.Name="Go to Package managers" />
                 <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavSettings}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Settings}"
                            Icon="{ui:SymbolIcon Settings24}" Content="Settings" AutomationProperties.Name="Go to Settings" />
             </StackPanel>
 
             <Grid Grid.Column="1" Margin="8,0,24,16">
+                <views:DiscoverView DataContext="{Binding DiscoverPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Discover}" />
+                <views:PackageManagersView DataContext="{Binding PackageManagersPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=PackageManagers}" />
                 <views:DashboardView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Dashboard}" />
                 <views:ApplicationsView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Applications}" />
                 <views:QueueView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Queue}" />

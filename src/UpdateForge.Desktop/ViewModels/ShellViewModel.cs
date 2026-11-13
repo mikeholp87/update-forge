@@ -13,7 +13,7 @@ using UpdateForge.Core.Updates;
 
 namespace UpdateForge.Desktop.ViewModels;
 
-public enum PageId { Dashboard, Applications, Queue, History, Settings }
+public enum PageId { Dashboard, Applications, Queue, History, PackageManagers, Settings, Discover }
 
 public sealed partial class ShellViewModel : ObservableObject
 {
@@ -32,19 +32,24 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ShellViewModel(InventoryService inventory, UpdateEngine engine, ISettingsStore settingsStore, IExclusionStore exclusions,
         IInventoryStore inventoryStore, IScanHistoryStore scanHistory, IHistoryStore history, HistoryViewModel historyVm, SettingsViewModel settingsVm,
-        BundleService bundles, ILogger<ShellViewModel> log)
+        BundleService bundles, ILogger<ShellViewModel> log, PackageManagersViewModel managersVm, DiscoverViewModel discoverVm)
     {
         _bundles = bundles;
         _inventory = inventory; _engine = engine; _settingsStore = settingsStore; _exclusions = exclusions;
         _inventoryStore = inventoryStore; _scanHistory = scanHistory; _history = history; _log = log;
         HistoryPage = historyVm;
         SettingsPage = settingsVm;
+        PackageManagersPage = managersVm;
+        DiscoverPage = discoverVm;
+        managersVm.SettingsChanged = ReloadSettingsAsync;
         AppsView = CollectionViewSource.GetDefaultView(Apps);
         AppsView.Filter = o => o is AppRowViewModel r && r.Matches(Filter) && MatchesSearch(r);
     }
 
     public HistoryViewModel HistoryPage { get; }
     public SettingsViewModel SettingsPage { get; }
+    public PackageManagersViewModel PackageManagersPage { get; }
+    public DiscoverViewModel DiscoverPage { get; }
 
     public ObservableCollection<AppRowViewModel> Apps { get; } = [];
     public ObservableCollection<AppRowViewModel> PendingUpdates { get; } = [];
@@ -84,7 +89,12 @@ public sealed partial class ShellViewModel : ObservableObject
         || (r.App.Publisher?.Contains(Search, StringComparison.OrdinalIgnoreCase) ?? false)
         || (r.App.PackageId?.Contains(Search, StringComparison.OrdinalIgnoreCase) ?? false);
 
-    [RelayCommand] private void Navigate(PageId page) => CurrentPage = page;
+    [RelayCommand] private async Task NavigateAsync(PageId page)
+    {
+        CurrentPage = page;
+        if (page == PageId.PackageManagers && PackageManagersPage.Managers.Count == 0)
+            await PackageManagersPage.RefreshCommand.ExecuteAsync(null);
+    }
 
     public async Task InitializeAsync()
     {

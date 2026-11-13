@@ -15,6 +15,24 @@
             <conv:InverseBoolConverter x:Key="InverseBool" />
             <conv:StringToVisibilityConverter x:Key="StringToVisibility" />
             <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <Style x:Key="NavDiscover" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="Discover">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="NavPackageManagers" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="PackageManagers">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
             <Style x:Key="NavDashboard" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                 <Setter Property="Appearance" Value="Transparent" />
                 <Style.Triggers>

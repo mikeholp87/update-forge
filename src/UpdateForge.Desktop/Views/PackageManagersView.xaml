@@ -1,0 +1,46 @@
+<UserControl x:Class="UpdateForge.Desktop.Views.PackageManagersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageTitle}" Text="Package managers" />
+            <TextBlock Text="Choose which providers scan your applications and check their health and sources." TextWrapping="Wrap" Margin="0,0,0,12" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <ui:Button Content="Check status" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
+                <ui:Button Content="Save changes" Appearance="Primary" Command="{Binding SaveCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,0,0,12" AutomationProperties.LiveSetting="Polite" />
+            <ListBox ItemsSource="{Binding Managers}" SelectedItem="{Binding Selected}" HorizontalContentAlignment="Stretch"
+                     IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" AutomationProperties.Name="Package managers">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsEnabled}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Capabilities}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="24,4,0,0" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Text="{Binding Health}" /><TextBlock Text="{Binding Version}" TextWrapping="Wrap" FontSize="12" /></StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ui:Card Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Selected.DisplayName}" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Selected.Details}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                    <TextBlock Text="{Binding Selected.Path}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <WrapPanel>
+                        <ui:Button Content="Show sources" Command="{Binding ShowSourcesCommand}" Margin="0,0,8,8" />
+                        <ui:Button Content="Refresh sources" Command="{Binding RefreshSourcesCommand}" Margin="0,0,8,8" />
+                        <ui:Button Content="Setup instructions" Command="{Binding OpenSetupCommand}" Margin="0,0,0,8" />
+                    </WrapPanel>
+                    <TextBlock Text="Scoop refresh updates Scoop itself and its buckets. Chocolatey reads sources during package checks. Source configuration is shown as reported by each manager; use its CLI to add or remove sources." FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <TextBox Text="{Binding SourceOutput, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas"
+                             MinHeight="100" MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="Package source output" />
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

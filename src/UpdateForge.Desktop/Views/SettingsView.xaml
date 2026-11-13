@@ -28,14 +28,7 @@
                         <ui:NumberBox Value="{Binding CustomHours}" Minimum="1" Maximum="720" Width="120" AutomationProperties.Name="Custom interval in hours" />
                     </StackPanel>
                     <CheckBox Content="Check for updates when UpdateForge starts" IsChecked="{Binding CheckAtStartup}" />
-                    <TextBlock Text="Enabled providers" Margin="0,8,0,4" />
-                    <ItemsControl ItemsSource="{Binding ProviderToggles}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsEnabled}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <TextBlock Text="Choose enabled providers and manage sources on the Package managers page." Margin="0,8,0,4" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding ScheduleText}" Margin="0,12,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                Text="The scheduled task runs as you, only while you are signed in, without elevated privileges. It works even when this window is closed." />

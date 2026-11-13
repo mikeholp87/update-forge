@@ -1,0 +1,62 @@
+<UserControl x:Class="UpdateForge.Desktop.Views.DiscoverView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:UpdateForge.Desktop.ViewModels">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageTitle}" Text="Discover packages" />
+            <TextBlock Text="Search available packages from all enabled managers and their configured sources."
+                       TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,16,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:TextBox PlaceholderText="Search packages by name or ID" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+                        Icon="{ui:SymbolIcon Search24}" Margin="0,0,8,0" MaxLength="256"
+                        IsEnabled="{Binding SearchCommand.IsRunning, Converter={StaticResource InverseBool}}"
+                        AutomationProperties.Name="Search package catalogs">
+                <ui:TextBox.InputBindings>
+                    <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
+                </ui:TextBox.InputBindings>
+            </ui:TextBox>
+            <ui:Button Grid.Column="1" Content="Search" Appearance="Primary" Command="{Binding SearchCommand}" Margin="0,0,8,0"
+                       AutomationProperties.Name="Search all enabled package managers" />
+            <ui:Button Grid.Column="2" Content="Cancel" Command="{Binding SearchCancelCommand}"
+                       Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BoolToVisibility}}"
+                       AutomationProperties.Name="Cancel package search" />
+        </Grid>
+        <StackPanel Grid.Row="2" Margin="0,0,0,12">
+            <ProgressBar Height="3" IsIndeterminate="True" Margin="0,0,0,8"
+                         Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            <ui:Button Content="Package managers" HorizontalAlignment="Left" Margin="0,8,0,0"
+                       Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                       CommandParameter="{x:Static vm:PageId.PackageManagers}" />
+        </StackPanel>
+        <TextBlock Grid.Row="3" Text="{Binding ProviderNotice}" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                   Visibility="{Binding ProviderNotice, Converter={StaticResource StringToVisibility}}" />
+        <DataGrid Grid.Row="4" ItemsSource="{Binding Packages}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" CanUserSortColumns="True" HeadersVisibility="Column" GridLinesVisibility="None"
+                  SelectionMode="Single" EnableRowVirtualization="True" AutomationProperties.Name="Discovered packages">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                <DataGridTextColumn Header="Package ID" Binding="{Binding PackageId}" Width="2*" />
+                <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="*" />
+                <DataGridTextColumn Header="Manager" Binding="{Binding Manager}" Width="*" />
+                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

@@ -74,6 +74,8 @@ public partial class App : System.Windows.Application
             .AddSingleton<IScheduleService, ScheduledTaskService>()
             .AddSingleton<HistoryViewModel>()
             .AddSingleton<SettingsViewModel>()
+            .AddSingleton<PackageManagersViewModel>()
+            .AddSingleton<DiscoverViewModel>()
             .AddSingleton<ShellViewModel>()
             .BuildServiceProvider();
 

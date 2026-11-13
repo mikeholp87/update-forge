@@ -9,9 +9,11 @@ A free, open-source (MIT) software updater for Windows 11 and compatible Windows
 ## Features
 
 - **Discovery**: WinGet (installed packages, available versions, pins), Windows uninstall registry (read-only), Microsoft Store/MSIX packages, Scoop and Chocolatey when installed.
+- **Discover packages**: search available packages across enabled WinGet, Scoop, and Chocolatey managers using their configured sources and buckets, with cancellation and per-manager error details.
 - **Honest status**: every application is *Update ready*, *Approval required*, *Manual update*, *No update method* or *Unknown*. UpdateForge never reports an unknown version as "newer" and never invents installers or switches.
 - **Update engine**: sequential queue, per-item state machine, post-install verification, restart detection, crash recovery (an interrupted install is never reported as success).
 - **Fluent WPF UI**: dashboard, installed applications, queue, history, settings; light/dark; tray icon.
+- **Package managers**: a dedicated page for provider health, installed CLI versions and paths, enabled providers, configured sources, and WinGet/Scoop source refresh. Setup links open each manager's official instructions. Source additions/removals remain CLI operations.
 - **Scheduling**: a per-user Windows Task Scheduler task runs scans (and, if enabled, safe updates) even when the window is closed.
 - **Export and bundles**: export the installed list (or just the updates) to CSV or JSON, from the app or with `updateforge-cli export`. `updateforge-cli bundle export <file>` saves your WinGet packages to a bundle; `bundle import <file>` shows what is missing and `--install` installs it. Bundles are untrusted input: ids, sources and versions are validated and nothing outside WinGet/msstore is ever run.
 - **CLI**: `updateforge-cli scan | list | outdated | update --all | update --id <id> | export | bundle export|import | history | providers | doctor | schedule | diagnostics export` (`--json` supported).

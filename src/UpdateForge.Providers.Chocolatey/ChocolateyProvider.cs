@@ -34,7 +34,7 @@ public static class ChocolateyParsing
 /// Not verified against a live Chocolatey installation in this repository's CI; see docs/PROVIDERS.md.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed partial class ChocolateyProvider : IUpdateProvider
+public sealed partial class ChocolateyProvider : IUpdateProvider, IPackageManager
 {
     public const string ProviderKey = "chocolatey";
     private readonly IProcessRunner _runner;
@@ -52,6 +52,15 @@ public sealed partial class ChocolateyProvider : IUpdateProvider
     }
 
     public string Id => ProviderKey;
+    public string ExecutablePath => _exe;
+    public bool CanRefreshSources => false;
+
+    public async Task<string> GetSourcesAsync(CancellationToken cancellationToken) =>
+        PackageManagerOutput.RequireSuccess(await _runner.RunAsync(new ProcessSpec(_exe,
+            ["source", "list", "--limit-output", "--no-color"], TimeSpan.FromMinutes(1)), cancellationToken).ConfigureAwait(false), "List Chocolatey sources");
+
+    public Task<string> RefreshSourcesAsync(CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Chocolatey fetches source metadata when checking packages.");
     public string DisplayName => "Chocolatey";
     public ProviderCapabilities Capabilities { get; } = new(true, true, true, SupportsPins: true);
 

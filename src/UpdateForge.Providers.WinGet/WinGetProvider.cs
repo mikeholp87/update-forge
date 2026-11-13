@@ -12,7 +12,7 @@ namespace UpdateForge.Providers.WinGet;
 /// on the locale-independent <c>winget export</c> JSON. A COM (Microsoft.Management.Deployment) backend is a planned
 /// alternative; see docs/RESEARCH.md.
 /// </summary>
-public sealed partial class WinGetProvider : IUpdateProvider
+public sealed partial class WinGetProvider : IUpdateProvider, IPackageManager
 {
     public const string ProviderKey = "winget";
     private static readonly string[] AllowedSources = ["winget", "msstore"];
@@ -35,6 +35,16 @@ public sealed partial class WinGetProvider : IUpdateProvider
     }
 
     public string Id => ProviderKey;
+    public string ExecutablePath => _exe;
+    public bool CanRefreshSources => true;
+
+    public async Task<string> GetSourcesAsync(CancellationToken cancellationToken) =>
+        PackageManagerOutput.RequireSuccess(await _runner.RunAsync(new ProcessSpec(_exe,
+            ["source", "list", "--disable-interactivity"], TimeSpan.FromMinutes(1)), cancellationToken).ConfigureAwait(false), "List WinGet sources");
+
+    public async Task<string> RefreshSourcesAsync(CancellationToken cancellationToken) =>
+        PackageManagerOutput.RequireSuccess(await _runner.RunAsync(new ProcessSpec(_exe,
+            ["source", "update", "--disable-interactivity"], ScanTimeout), cancellationToken).ConfigureAwait(false), "Refresh WinGet sources");
     public string DisplayName => "Windows Package Manager (WinGet)";
     public ProviderCapabilities Capabilities { get; } = new(CanDiscover: true, CanDetectUpdates: true, CanUpdate: true, SupportsPins: true);
 
@@ -50,11 +60,11 @@ public sealed partial class WinGetProvider : IUpdateProvider
 
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(_exe)) return ProviderAvailability.Unavailable("WinGet (App Installer) is not installed.");
+        if (!File.Exists(_exe)) return ProviderAvailability.NotInstalled("WinGet (App Installer) is not installed.");
         try
         {
             var r = await _runner.RunAsync(new ProcessSpec(_exe, ["--version"], TimeSpan.FromSeconds(30)), cancellationToken).ConfigureAwait(false);
-            return r.ExitCode == 0
+            return r.ExitCode == 0 && !r.TimedOut
                 ? new ProviderAvailability(ProviderHealth.Available, r.StdOut.Trim().TrimStart('v'), null)
                 : ProviderAvailability.Unavailable($"WinGet returned exit code {r.ExitCode}.");
         }
