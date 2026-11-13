@@ -8,11 +8,19 @@ namespace UpdateForge.Providers.WinGet;
 /// </summary>
 public static class WinGetExitCodes
 {
-    public static UpdateResult Map(int exitCode, string? details)
+    public static UpdateResult Map(int exitCode, string? details, bool elevated = false)
     {
         var code = unchecked((uint)exitCode);
         UpdateResult R(UpdateOutcome o, ErrorCategory e, string msg, bool restart = false) =>
             new() { Outcome = o, Error = e, Message = msg, ExitCode = exitCode, TechnicalDetails = details, RestartRequired = restart };
+
+        // WinGet exits 0 for a Store/MSIX upgrade that is staged but not applied until the running app restarts.
+        if (code == 0 && details?.Contains("Restart the application to complete the upgrade", StringComparison.OrdinalIgnoreCase) == true)
+            return R(UpdateOutcome.RestartRequired, ErrorCategory.PendingRestart, "Update installed. Close and reopen the application to finish applying it.");
+
+        // A locked file is the application running, whatever generic code WinGet wraps it in (e.g. 0x8A150052 portable install failed).
+        if (code != 0 && IsFileLocked(details))
+            return R(UpdateOutcome.Failed, ErrorCategory.ApplicationInUse, "The application is running and its files are locked. Close it and retry.");
 
         return code switch
         {
@@ -25,6 +33,10 @@ public static class WinGetExitCodes
             0x8A150041 or 0x8A150046 => R(UpdateOutcome.ManualActionRequired, ErrorCategory.AgreementsNotAccepted, "Package or source agreements must be reviewed and accepted first."),
             0x8A150019 or 0x8A15007D => R(UpdateOutcome.ManualActionRequired, ErrorCategory.ElevationRequired, "Administrator approval is required for this update."),
             0x8A150056 => R(UpdateOutcome.ManualActionRequired, ErrorCategory.ElevationRequired, "This installer cannot run from an elevated context."),
+            0x80073D28 => elevated
+                ? R(UpdateOutcome.Failed, ErrorCategory.ApplicationInUse, "Windows refused to install this Store package even with administrator rights. Close the app and retry, or update it from the Microsoft Store.")
+                : R(UpdateOutcome.ManualActionRequired, ErrorCategory.ElevationRequired, "Windows says this package needs administrator privileges to install. Run Update Forge as administrator and retry."),
+            0x8A150052 => R(UpdateOutcome.Failed, ErrorCategory.InstallerFailed, "WinGet could not install this portable package. If the app is running, close it and retry."),
             0x8A150101 or 0x8A150103 or 0x8A150111 => R(UpdateOutcome.Failed, ErrorCategory.ApplicationInUse, "The application is running. Close it and retry."),
             0x8A150102 => R(UpdateOutcome.Failed, ErrorCategory.InstallerRunning, "Another installation is in progress. Try again later."),
             0x8A150105 => R(UpdateOutcome.Failed, ErrorCategory.DiskSpace, "Not enough disk space."),
@@ -40,4 +52,8 @@ public static class WinGetExitCodes
             _ => R(UpdateOutcome.Failed, ErrorCategory.InstallerFailed, $"The installer reported error 0x{code:X8}."),
         };
     }
+
+    internal static bool IsFileLocked(string? details) =>
+        details is not null && (details.Contains("Access is denied", StringComparison.OrdinalIgnoreCase)
+            || details.Contains("being used by another process", StringComparison.OrdinalIgnoreCase));
 }

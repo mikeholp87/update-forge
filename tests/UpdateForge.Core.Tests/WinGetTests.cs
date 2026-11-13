@@ -92,9 +92,32 @@ public class WinGetExitCodeTests
     [InlineData(unchecked((int)0x8A150068), UpdateOutcome.Blocked)]   // pinned
     [InlineData(unchecked((int)0x8A150019), UpdateOutcome.ManualActionRequired)] // needs admin
     [InlineData(unchecked((int)0x8A150101), UpdateOutcome.Failed)]    // app running
+    [InlineData(unchecked((int)0x80073D28), UpdateOutcome.ManualActionRequired)] // MSIX needs admin
+    [InlineData(unchecked((int)0x8A150052), UpdateOutcome.Failed)]    // portable install failed
     [InlineData(unchecked((int)0x8A15010C), UpdateOutcome.Canceled)]
     [InlineData(1603, UpdateOutcome.Failed)]
     public void Maps_exit_codes(int code, UpdateOutcome expected) => Assert.Equal(expected, WinGetExitCodes.Map(code, null).Outcome);
+
+    [Fact]
+    public void Staged_store_upgrade_is_restart_not_failure()
+    {
+        var r = WinGetExitCodes.Map(0, "Successfully installed. Restart the application to complete the upgrade.");
+        Assert.Equal(UpdateOutcome.RestartRequired, r.Outcome);
+    }
+
+    [Fact]
+    public void Locked_file_under_generic_code_is_application_in_use()
+    {
+        var r = WinGetExitCodes.Map(unchecked((int)0x8A150052), "remove: Access is denied.: \"claude.exe\"");
+        Assert.Equal(ErrorCategory.ApplicationInUse, r.Error);
+    }
+
+    [Fact]
+    public void Store_in_use_error_is_not_reported_as_needing_admin_when_already_elevated()
+    {
+        Assert.Equal(UpdateOutcome.Failed, WinGetExitCodes.Map(unchecked((int)0x80073D28), null, elevated: true).Outcome);
+        Assert.Equal(UpdateOutcome.ManualActionRequired, WinGetExitCodes.Map(unchecked((int)0x80073D28), null, elevated: false).Outcome);
+    }
 
     [Fact]
     public void Hash_mismatch_is_categorised_and_never_a_success()

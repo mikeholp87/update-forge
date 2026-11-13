@@ -22,6 +22,8 @@ public sealed partial class WinGetProvider : IUpdateProvider
     private readonly IProcessRunner _runner;
     private readonly ILogger<WinGetProvider> _log;
     private readonly string _exe;
+    private readonly Func<bool> _isElevated = static () => OperatingSystem.IsWindows()
+        && new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
 
     public WinGetProvider(IProcessRunner runner, ILogger<WinGetProvider> log, string? executablePath = null)
     {
@@ -154,9 +156,25 @@ public sealed partial class WinGetProvider : IUpdateProvider
         progress.Report(new UpdateProgress("Starting WinGet…", null, "Installing"));
         try
         {
-            var r = await _runner.RunAsync(new ProcessSpec(_exe, args, InstallTimeout, line => ReportLine(line, progress)), cancellationToken).ConfigureAwait(false);
-            if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "The installer timed out and was stopped.");
-            return WinGetExitCodes.Map(r.ExitCode, Tail(r.StdOut));
+            UpdateResult result = default!;
+            for (var attempt = 1; attempt <= 2; attempt++)
+            {
+                var r = await _runner.RunAsync(new ProcessSpec(_exe, args, InstallTimeout, line => ReportLine(line, progress)), cancellationToken).ConfigureAwait(false);
+                if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "The installer timed out and was stopped.");
+                var details = Tail(r.StdOut);
+                result = WinGetExitCodes.Map(r.ExitCode, details, _isElevated());
+                // Another installer (often the Windows Installer service or a Store update) holds the lock: wait once and retry.
+                if (attempt == 1 && result.Error == ErrorCategory.InstallerRunning)
+                {
+                    progress.Report(new UpdateProgress("Another installation is in progress; waiting to retry…", null, "Waiting"));
+                    await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+                if (result.Error == ErrorCategory.ApplicationInUse && LockingProcesses(details) is { Length: > 0 } names)
+                    result = result with { Message = $"{names} is running and its files are locked. Close it and retry." };
+                break;
+            }
+            return result;
         }
         catch (OperationCanceledException)
         {
@@ -198,6 +216,31 @@ public sealed partial class WinGetProvider : IUpdateProvider
             : t.Contains("hash", StringComparison.OrdinalIgnoreCase) ? "Verifying" : "Installing";
         progress.Report(new UpdateProgress(t.Length > 200 ? t[..200] : t, null, phase));
     }
+
+    /// <summary>Names running processes whose executable is the file WinGet reported it could not remove or replace.</summary>
+    internal static string LockingProcesses(string details)
+    {
+        try
+        {
+            var m = LockedPathPattern().Match(details);
+            if (!m.Success) return string.Empty;
+            var path = m.Groups[1].Value;
+            var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in System.Diagnostics.Process.GetProcesses())
+            {
+                using (p)
+                {
+                    try { if (string.Equals(p.MainModule?.FileName, path, StringComparison.OrdinalIgnoreCase)) names.Add($"{p.ProcessName}.exe (PID {p.Id})"); }
+                    catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or NotSupportedException) { }
+                }
+            }
+            return string.Join(", ", names);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { return string.Empty; }
+    }
+
+    [GeneratedRegex(@"Access is denied\.?:? *""([^""]+\.exe)""", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex LockedPathPattern();
 
     private static string Tail(string text) => text.Length <= 4000 ? text : text[^4000..];
 }

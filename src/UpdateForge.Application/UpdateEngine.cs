@@ -122,6 +122,13 @@ public sealed class UpdateEngine(
             case UpdateOutcome.RestartRequired:
                 await Move(JobState.VerifyingInstallation, "Verifying installation…").ConfigureAwait(false);
                 versionAfter = await TryVerifyAsync(provider, app).ConfigureAwait(false);
+                // Package managers can report the old version briefly after an install; re-check before declaring failure.
+                for (var i = 0; i < 3 && result.Outcome == UpdateOutcome.Succeeded && versionAfter is not null
+                     && AppVersion.Compare(app.InstalledVersion, versionAfter) != VersionOrder.Older; i++)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(3), CancellationToken.None).ConfigureAwait(false);
+                    versionAfter = await TryVerifyAsync(provider, app).ConfigureAwait(false);
+                }
                 if (result.Outcome == UpdateOutcome.RestartRequired) { finalState = JobState.RestartRequired; break; }
                 if (versionAfter is null) { finalState = JobState.Completed; message += " (could not be independently verified)"; }
                 else if (AppVersion.Compare(app.InstalledVersion, versionAfter) == VersionOrder.Older) finalState = JobState.Completed;
