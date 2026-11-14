@@ -3,7 +3,7 @@
 #   ./scripts/publish-linux.sh [version] [linux-x64|linux-arm64]
 set -euo pipefail
 
-version="${1:-0.3.1}"
+version="${1:-0.3.2}"
 rid="${2:-linux-x64}"
 case "$rid" in
 linux-x64) arch=amd64 ;;

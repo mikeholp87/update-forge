@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-14
+### Security
+- Per-user package managers (Cargo, pnpm, Bun, Yarn, pipx, Homebrew) refuse to run when UpdateForge runs as root: they run registry build and lifecycle scripts and write into the home folder.
+- CLI output drops control characters, so escape sequences printed by a package's build or install script cannot rewrite the terminal.
+### Fixed
+- On an account whose data folder (`~/.local/share` or `$XDG_DATA_HOME`) did not exist yet, the database, logs and locks were created in the folder UpdateForge was started from. They now always go to the data folder, created owner-only.
+- Linux packages: `.dll` and `.so` files ship as 644; only the launchers are executable.
+
 ## [0.3.1] - 2026-11-14
 ### Security
 - apt elevation on the .deb goes through a dedicated helper (`/usr/libexec/updateforge/updateforge-apt-helper`) and its own polkit action, `io.github.mikeholp87.updateforge.apt`: the prompt names UpdateForge, asks every time, and authorizes only refreshing sources or installing/upgrading one validated package. The portable tarball still uses plain `pkexec apt-get`.
