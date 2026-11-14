@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=UpdateForge
+GenericName=Software Updater
+Comment=Check for and install updates for apt, Flatpak, Snap and npm packages
+Exec=updateforge
+Icon=updateforge
+Terminal=false
+Categories=System;PackageManager;Settings;
+Keywords=update;upgrade;apt;flatpak;snap;npm;
+StartupWMClass=updateforge

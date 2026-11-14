@@ -15,3 +15,10 @@ public interface IScheduleService
 public sealed record BackgroundRunSummary(
     DateTimeOffset CompletedAt, int Installed, int UpdatesFound, int Updated, int Failed, int NeedsApproval, int RestartRequired,
     string? SkippedReason);
+
+/// <summary>Tells the unattended runner whether the current connection is metered (mobile data, capped plan).</summary>
+public interface INetworkCostProbe
+{
+    /// <summary>False when it cannot be determined: an unknown connection never blocks an update check.</summary>
+    Task<bool> IsMeteredAsync(CancellationToken cancellationToken);
+}

@@ -2,7 +2,7 @@
 
 Website: <https://mikeholp87.github.io/update-forge/>
 
-A free, open-source (MIT) software updater for Windows 11 and compatible Windows 10. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
+A free, open-source (MIT) software updater for **Windows 11** (and compatible Windows 10) and **Linux**. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
 
 > **Status: 0.1.0 release candidate, not yet released.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
 
@@ -22,7 +22,29 @@ A free, open-source (MIT) software updater for Windows 11 and compatible Windows
 
 ## Requirements
 
-Windows 11 x64 (Windows 10 2004+ expected to work, untested). WinGet (App Installer) is needed for update installation.
+**Linux**: x64 or arm64 with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. Providers: apt, Flatpak, Snap and npm, each used when installed. See [Linux](#linux).
+
+**Windows**: Windows 11 x64 (Windows 10 2004+ expected to work, untested). WinGet (App Installer) is needed for update installation.
+
+## Linux
+
+The Linux build shares the engine, database, CLI and policy with the Windows build. What differs:
+
+- **Providers**: `apt` (packages you installed yourself plus anything upgradable), `flatpak` (apps, per user and system installation), `snap` and `npm`. Debian version ordering (epochs, `~`) is implemented, so `1:2.0` correctly beats `1.9`.
+- **Privileges**: apt upgrades need root, so UpdateForge runs `apt-get` through `pkexec` (polkit shows the password prompt) and never stores or asks for your password itself. Flatpak and Snap authorize through their own polkit prompts. Scheduled runs never prompt: updates needing authorization stay pending and you are notified.
+- **Scheduling**: a systemd *user* timer (`~/.config/systemd/user/updateforge.timer`), no root. It fires while you are logged in; `loginctl enable-linger $USER` keeps it running after logout. Battery use maps to `ConditionACPower`, metered connections are read from NetworkManager (`nmcli`).
+- **GUI**: Avalonia (`updateforge`), with a tray icon (GNOME needs the AppIndicator extension) and notifications through `notify-send`.
+- **CLI**: `updateforge-cli` with the same commands (`scan`, `outdated`, `update --all`, `schedule apply`, ...). `bundle` is WinGet-only and not available.
+- Data lives in `~/.local/share/UpdateForge` (database, logs).
+
+Build and package (needs the .NET 10 SDK):
+
+```bash
+dotnet build UpdateForge.CI.slnf -c Release
+dotnet test --project tests/UpdateForge.Core.Tests
+./scripts/publish-linux.sh 0.1.0      # artifacts/*.deb and a portable .tar.gz
+sudo apt install ./artifacts/updateforge_0.1.0_amd64.deb
+```
 
 ## Install
 
@@ -44,7 +66,7 @@ See [SECURITY.md](SECURITY.md). In short: official package-manager CLIs at fixed
 - WinGet integration uses the CLI (anchored on locale-independent `winget export`), not yet the COM API.
 - Scoop/Chocolatey providers are fixture-tested only, and the npm provider is fixture-tested plus checked read-only against a real npm (listing, search, registry, version check; no real update or install was run). npm must be installed with the standard Node.js layout (nvm and Volta layouts are not supported yet), and Scoop cannot install a specific version; Portable-app provider, self-update, localization, ARM64 and UI automation tests are not implemented yet.
 
-## Build from source
+## Build from source (Windows)
 
 ```powershell
 dotnet build UpdateForge.CI.slnf -c Release   # everything except the MSI installer, which needs the publish step below

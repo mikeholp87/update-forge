@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Runtime.Versioning;
-using System.Security.Principal;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -134,12 +132,11 @@ public static class NpmParsing
 
 /// <summary>
 /// npm provider for globally installed packages. npm is a Node.js script, so it is started as
-/// <c>node.exe npm-cli.js …</c> with typed arguments: never through <c>npm.cmd</c> or a shell, so nothing in a package name
-/// can be reinterpreted by <c>cmd.exe</c>. Package names and versions are validated before they reach the command line.
+/// <c>node npm-cli.js …</c> with typed arguments: never through <c>npm.cmd</c> or a shell, so nothing in a package name
+/// can be reinterpreted by <c>cmd.exe</c>. On Linux the npm launcher on PATH is a symlink to <c>npm-cli.js</c>, which is resolved the same way. Package names and versions are validated before they reach the command line.
 /// Linked packages (<c>npm link</c>) are reported as pinned and never replaced.
-/// Not verified against every Node.js layout (nvm, Volta); if node.exe and npm-cli.js are not found the provider reports itself as not installed.
+/// Not verified against every Node.js layout (Volta); if node and npm-cli.js are not found the provider reports itself as not installed.
 /// </summary>
-[SupportedOSPlatform("windows")]
 public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPackageSearchProvider
 {
     public const string ProviderKey = "npm";
@@ -154,7 +151,7 @@ public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPac
         _runner = runner;
         _log = log;
         (_node, _npmCli) = nodeExe is not null && npmCli is not null ? (nodeExe, npmCli) : Locate();
-        _isElevated = isElevated ?? (() => new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator));
+        _isElevated = isElevated ?? (() => Environment.IsPrivilegedProcess);
     }
 
     public string Id => ProviderKey;
@@ -171,12 +168,16 @@ public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPac
 
     internal static bool IsValidName(string? name) => name is { Length: <= 214 } && NamePattern().IsMatch(name);
 
-    /// <summary>Finds node.exe and the npm CLI script next to it (the layout of the official Windows installer).</summary>
+    /// <summary>
+    /// Finds node and the npm CLI script. Windows: both next to each other (the official installer's layout). Elsewhere: <c>node</c> and
+    /// <c>npm</c> are looked up on PATH and the <c>npm</c> symlink is followed to <c>npm-cli.js</c> (this also covers nvm and Homebrew).
+    /// </summary>
     private static (string Node, string Cli) Locate()
     {
         var dirs = new List<string>();
         foreach (var d in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
             dirs.Add(d.Trim().Trim('"'));
+        if (!OperatingSystem.IsWindows()) return LocateUnix(dirs);
         dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs"));
         dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "nodejs"));
         foreach (var dir in dirs)
@@ -190,6 +191,27 @@ public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPac
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException) { /* malformed PATH entry */ }
         }
         return ("", "");
+    }
+
+    private static (string Node, string Cli) LocateUnix(List<string> dirs)
+    {
+        string? node = null, cli = null;
+        foreach (var dir in dirs)
+        {
+            try
+            {
+                node ??= File.Exists(Path.Combine(dir, "node")) ? Path.Combine(dir, "node") : null;
+                var npm = Path.Combine(dir, "npm");
+                if (cli is null && File.Exists(npm))
+                {
+                    var target = File.ResolveLinkTarget(npm, returnFinalTarget: true)?.FullName ?? npm;
+                    var sibling = Path.GetFullPath(Path.Combine(dir, "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"));
+                    cli = target.EndsWith("npm-cli.js", StringComparison.Ordinal) ? target : File.Exists(sibling) ? sibling : null;
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException) { /* malformed PATH entry */ }
+        }
+        return node is not null && cli is not null && File.Exists(cli) ? (node, cli) : ("", "");
     }
 
     private ProcessSpec Spec(TimeSpan timeout, Action<string>? onLine, params string[] args) =>
@@ -298,7 +320,9 @@ public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPac
             return _isElevated()
                 ? UpdateResult.Fail(ErrorCategory.InstallerFailed, "npm could not write to its global folder (permission denied).", r.ExitCode, tail)
                 : new UpdateResult { Outcome = UpdateOutcome.ManualActionRequired, Error = ErrorCategory.ElevationRequired, ExitCode = r.ExitCode, TechnicalDetails = tail,
-                    Message = "npm could not write to its global folder. Run UpdateForge as administrator, or point npm's prefix at a folder you own." };
+                    Message = OperatingSystem.IsWindows()
+                        ? "npm could not write to its global folder. Run UpdateForge as administrator, or point npm's prefix at a folder you own."
+                        : "npm could not write to its global folder. Point npm's prefix at a folder you own (npm config set prefix ~/.npm-global), or update it with sudo." };
         }
         if (text.Contains("EBUSY", StringComparison.Ordinal))
             return new UpdateResult { Outcome = UpdateOutcome.Failed, Error = ErrorCategory.ApplicationInUse, ExitCode = r.ExitCode, TechnicalDetails = tail,

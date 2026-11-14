@@ -30,6 +30,28 @@ jobs:
           Write-Host $out
           if ($out -match 'has the following vulnerable packages') { throw 'Vulnerable dependencies found' }
 
+  # The same solution on Linux: runs every test against the Linux file lock and Linux providers, and builds the .deb / tarball.
+  build-test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Build (EnableWindowsTargeting also compiles the Windows projects on Linux)
+        run: dotnet build UpdateForge.CI.slnf -c Release
+      - name: Test
+        run: dotnet test --project tests/UpdateForge.Core.Tests -c Release --no-build
+      - name: Publish Linux packages
+        run: ./scripts/publish-linux.sh 0.1.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: updateforge-0.1.0-linux
+          path: |
+            artifacts/*.deb
+            artifacts/*.tar.gz
+            artifacts/SHA256SUMS-linux
+
   package:
     needs: build-test
     runs-on: windows-latest

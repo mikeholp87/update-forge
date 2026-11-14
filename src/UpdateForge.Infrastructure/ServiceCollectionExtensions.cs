@@ -9,9 +9,10 @@ namespace UpdateForge.Infrastructure;
 
 /// <summary>
 /// Cross-process "one update run at a time" lock (GUI, CLI and scheduled task share it).
-/// A named semaphore, not a mutex: a Windows mutex must be released by the thread that acquired it, but the engine is
-/// async and resumes on a different thread, which made ReleaseMutex throw. If the holder process dies, the kernel object
-/// disappears with its last handle, so a crash cannot leave the lock stuck.
+/// Windows: a named semaphore, not a mutex: a Windows mutex must be released by the thread that acquired it, but the engine is
+/// async and resumes on a different thread. If the holder dies, the kernel object disappears with its last handle.
+/// Linux/macOS: named semaphores are unsupported, so an exclusive lock on a file under the runtime directory is used instead;
+/// the OS drops it when the process exits, so a crash cannot leave it stuck either.
 /// </summary>
 public sealed class MutexEngineLock : IEngineLock
 {
@@ -22,23 +23,37 @@ public sealed class MutexEngineLock : IEngineLock
 
     public MutexEngineLock(string name) => _name = name;
 
-    public IDisposable? TryAcquire()
+    public IDisposable? TryAcquire() => OperatingSystem.IsWindows() ? TryAcquireSemaphore() : TryAcquireFile();
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private Releaser? TryAcquireSemaphore()
     {
         var s = new Semaphore(1, 1, _name);
-        if (s.WaitOne(0)) return new Releaser(s);
+        if (s.WaitOne(0)) return new Releaser(() => { s.Release(); s.Dispose(); });
         s.Dispose();
         return null;
     }
 
-    private sealed class Releaser(Semaphore s) : IDisposable
+    private Releaser? TryAcquireFile()
+    {
+        var dir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR") is { Length: > 0 } r && Directory.Exists(r) ? r : Path.GetTempPath();
+        var file = Path.Combine(dir, new string([.. _name.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_')]) + ".lock");
+        try
+        {
+            // FileShare.None maps to an exclusive flock on Unix, so a second handle (this or another process) is refused.
+            var fs = new FileStream(file, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
+            return new Releaser(fs.Dispose);
+        }
+        catch (IOException) { return null; }
+    }
+
+    private sealed class Releaser(Action release) : IDisposable
     {
         private int _released;
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _released, 1) != 0) return;
-            s.Release();
-            s.Dispose();
+            if (Interlocked.Exchange(ref _released, 1) == 0) release();
         }
     }
 }

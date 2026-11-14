@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:UpdateForge.Desktop.ViewModels"
+             x:Class="UpdateForge.Desktop.Views.DiscoverView">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+        <StackPanel>
+            <TextBlock Classes="title" Text="Discover packages" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Search available packages from all enabled managers and their configured sources. Double-click a package to see more details." />
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,16,0,12" ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBox x:Name="QueryBox" Watermark="Search packages by name or ID" Text="{Binding Query, Mode=TwoWay}" MaxLength="256" Margin="0,0,8,0" IsEnabled="{Binding !IsSearching}" />
+            <Button Grid.Column="1" Classes="accent" Content="Search" Command="{Binding SearchCommand}" Margin="0,0,8,0" />
+            <Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0" ToolTip.Tip="Search all enabled managers again for the latest packages." />
+            <Button Grid.Column="3" Content="Cancel" Command="{Binding CancelSearchCommand}" IsVisible="{Binding IsSearching}" />
+        </Grid>
+        <StackPanel Grid.Row="2" Margin="0,0,0,12" Spacing="8">
+            <ProgressBar Height="3" IsIndeterminate="True" IsVisible="{Binding IsSearching}" />
+            <ProgressBar Height="3" IsIndeterminate="True" IsVisible="{Binding InstallRunning}" />
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+            <Button x:Name="ManagersButton" Content="Package managers" HorizontalAlignment="Left" />
+        </StackPanel>
+        <TextBlock Grid.Row="3" Classes="muted" Text="{Binding ProviderNotice}" TextWrapping="Wrap" Margin="0,0,0,12"
+                   IsVisible="{Binding ProviderNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <DataGrid x:Name="PackagesGrid" Grid.Row="4" ItemsSource="{Binding Packages}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserSortColumns="True" GridLinesVisibility="None" SelectionMode="Single">
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem x:Name="ShowDetailsItem" Header="Show details" />
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                <DataGridTextColumn Header="Package ID" Binding="{Binding PackageId}" Width="2*" />
+                <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="*" />
+                <DataGridTextColumn Header="Manager" Binding="{Binding Manager}" Width="*" />
+                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" />
+                <DataGridTemplateColumn Width="Auto" MinWidth="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Install" Classes="accent" Padding="12,3" IsVisible="{Binding CanInstall}"
+                                    Command="{Binding $parent[UserControl].DataContext.InstallCommand}" CommandParameter="{Binding}"
+                                    IsEnabled="{Binding !$parent[UserControl].DataContext.InstallRunning}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

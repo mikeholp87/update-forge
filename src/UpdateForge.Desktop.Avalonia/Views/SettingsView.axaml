@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="UpdateForge.Desktop.Views.SettingsView">
+    <ScrollViewer>
+        <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="8">
+            <TextBlock Classes="title" Text="Settings" />
+
+            <TextBlock Classes="heading" Text="Updates" Margin="0,16,0,0" />
+            <Border Classes="card"><StackPanel Spacing="4">
+                <TextBlock Text="Installation mode" />
+                <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" />
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           Text="Manual: check only, install when you click. AutomaticSafe: scheduled runs install only supported, non-interactive updates that need no administrator password and leave everything else pending. apt, system-wide Flatpak and Snap updates always wait for you." />
+                <CheckBox Content="Allow automatic updates on battery power" IsChecked="{Binding RunOnBattery}" Margin="0,12,0,0" />
+                <CheckBox Content="Allow automatic updates on metered connections" IsChecked="{Binding RunOnMetered}" />
+            </StackPanel></Border>
+
+            <TextBlock Classes="heading" Text="Scanning and schedule" Margin="0,16,0,0" />
+            <Border Classes="card"><StackPanel Spacing="4">
+                <TextBlock Text="Check interval" />
+                <ComboBox ItemsSource="{Binding Intervals}" SelectedItem="{Binding Interval}" />
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
+                    <TextBlock Text="Custom interval (hours):" VerticalAlignment="Center" />
+                    <NumericUpDown Value="{Binding CustomHours}" Minimum="1" Maximum="720" Width="140" FormatString="0" />
+                </StackPanel>
+                <CheckBox Content="Check for updates when UpdateForge starts" IsChecked="{Binding CheckAtStartup}" />
+                <TextBlock Text="Choose enabled providers and manage sources on the Package managers page." TextWrapping="Wrap" Margin="0,8,0,0" />
+                <TextBlock Classes="muted" Text="{Binding ScheduleText}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           Text="The schedule is a systemd user timer: it runs as you, without root, while you are signed in (run 'loginctl enable-linger' to keep it running after you log out). It works even when this window is closed." />
+            </StackPanel></Border>
+
+            <TextBlock Classes="heading" Text="General" Margin="0,16,0,0" />
+            <Border Classes="card"><StackPanel Spacing="4">
+                <TextBlock Text="Theme" />
+                <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" />
+                <CheckBox Content="Minimize to the system tray" IsChecked="{Binding MinimizeToTray}" />
+                <CheckBox Content="Close button hides to the system tray" IsChecked="{Binding CloseToTray}" />
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="GNOME needs the AppIndicator extension to show a tray icon. Without a tray, leave the two options above off." />
+            </StackPanel></Border>
+
+            <TextBlock Classes="heading" Text="Notifications" Margin="0,16,0,0" />
+            <Border Classes="card"><StackPanel>
+                <CheckBox Content="New updates available" IsChecked="{Binding NotifyNew}" />
+                <CheckBox Content="Updates completed" IsChecked="{Binding NotifyCompleted}" />
+                <CheckBox Content="Updates failed" IsChecked="{Binding NotifyFailed}" />
+                <CheckBox Content="Restart required" IsChecked="{Binding NotifyRestart}" />
+            </StackPanel></Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,16,0,0">
+                <Button Classes="accent" Content="Save settings" Command="{Binding SaveCommand}" />
+                <Button Content="Remove systemd timer" Command="{Binding RemoveScheduleCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding SaveMessage}" TextWrapping="Wrap" />
+
+            <TextBlock Classes="heading" Text="About" Margin="0,24,0,0" />
+            <Border Classes="card"><StackPanel>
+                <TextBlock><Run Text="UpdateForge " /><Run Text="{Binding Version}" /></TextBlock>
+                <TextBlock Classes="muted" Text="Free and open source under the MIT License. No telemetry, no accounts, no ads." />
+            </StackPanel></Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

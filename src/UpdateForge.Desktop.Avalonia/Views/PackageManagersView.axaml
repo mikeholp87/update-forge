@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="UpdateForge.Desktop.Views.PackageManagersView">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Classes="title" Text="Package managers" />
+            <TextBlock Text="Choose which providers scan your applications and check their health and sources." TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Check status" Command="{Binding RefreshCommand}" />
+                <Button Classes="accent" Content="Save changes" Command="{Binding SaveCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+            <ListBox ItemsSource="{Binding Managers}" SelectedItem="{Binding Selected}" IsEnabled="{Binding !IsBusy}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="8" ColumnDefinitions="*,160">
+                            <StackPanel>
+                                <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsEnabled}" FontWeight="SemiBold" />
+                                <TextBlock Classes="muted" Text="{Binding Capabilities}" FontSize="12" Margin="28,4,0,0" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Text="{Binding Health}" /><TextBlock Text="{Binding Version}" TextWrapping="Wrap" FontSize="12" /></StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Border Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="heading" Text="{Binding Selected.DisplayName}" />
+                    <TextBlock Text="{Binding Selected.Details}" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted" Text="{Binding Selected.Path}" TextWrapping="Wrap" FontSize="12" />
+                    <WrapPanel>
+                        <Button Content="Show sources" Command="{Binding ShowSourcesCommand}" Margin="0,0,8,8" />
+                        <Button Content="Refresh sources" Command="{Binding RefreshSourcesCommand}" Margin="0,0,8,8" />
+                        <Button Content="Setup instructions" Command="{Binding OpenSetupCommand}" Margin="0,0,0,8" />
+                    </WrapPanel>
+                    <TextBlock FontSize="12" TextWrapping="Wrap"
+                               Text="apt refresh runs apt-get update as root and asks for your password. Flatpak, Snap and npm check their catalogs during every scan. Source configuration is shown as reported by each manager; use its CLI to add or remove sources." />
+                    <TextBox Text="{Binding SourceOutput, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="monospace" MinHeight="100" MaxHeight="260" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

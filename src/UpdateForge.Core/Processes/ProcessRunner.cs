@@ -4,7 +4,8 @@ using System.Text;
 namespace UpdateForge.Core.Processes;
 
 /// <summary>Fixed executable and strongly typed argument list. Never a shell command line.</summary>
-public sealed record ProcessSpec(string FileName, IReadOnlyList<string> Arguments, TimeSpan Timeout, Action<string>? OnOutputLine = null);
+public sealed record ProcessSpec(string FileName, IReadOnlyList<string> Arguments, TimeSpan Timeout, Action<string>? OnOutputLine = null,
+    IReadOnlyDictionary<string, string>? Environment = null);
 
 public sealed record ProcessResult(int ExitCode, string StdOut, string StdErr, bool TimedOut);
 
@@ -28,6 +29,7 @@ public sealed class ProcessRunner : IProcessRunner
             StandardErrorEncoding = Encoding.UTF8,
         };
         foreach (var a in spec.Arguments) psi.ArgumentList.Add(a);
+        if (spec.Environment is not null) foreach (var (k, v) in spec.Environment) psi.Environment[k] = v;
 
         using var process = new Process { StartInfo = psi };
         var stdout = new StringBuilder();

@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:UpdateForge.Desktop.Views"
+        xmlns:vm="using:UpdateForge.Desktop.ViewModels"
+        x:Class="UpdateForge.Desktop.MainWindow"
+        Icon="/Assets/UpdateForge-512.png"
+        Title="UpdateForge" Width="1180" Height="760" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+    <Grid ColumnDefinitions="220,*">
+        <StackPanel Grid.Column="0" Margin="12,12,8,12">
+            <Button Classes="nav" Classes.active="{Binding IsDashboardPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Dashboard}" Content="Dashboard" />
+            <Button Classes="nav" Classes.active="{Binding IsApplicationsPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Applications}" Content="Installed applications" />
+            <Button Classes="nav" Classes.active="{Binding IsDiscoverPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Discover}" Content="Discover packages" />
+            <Button Classes="nav" Classes.active="{Binding IsQueuePage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Queue}" Content="Update queue" />
+            <Button Classes="nav" Classes.active="{Binding IsHistoryPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.History}" Content="History" />
+            <Button Classes="nav" Classes.active="{Binding IsManagersPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.PackageManagers}" Content="Package managers" />
+            <Button Classes="nav" Classes.active="{Binding IsSettingsPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Settings}" Content="Settings" />
+        </StackPanel>
+
+        <Grid Grid.Column="1" Margin="8,12,24,16">
+            <views:DashboardView IsVisible="{Binding IsDashboardPage}" />
+            <views:ApplicationsView IsVisible="{Binding IsApplicationsPage}" />
+            <views:DiscoverView DataContext="{Binding DiscoverPage}" IsVisible="{Binding $parent[Window].DataContext.IsDiscoverPage}" />
+            <views:QueueView IsVisible="{Binding IsQueuePage}" />
+            <views:HistoryView DataContext="{Binding HistoryPage}" IsVisible="{Binding $parent[Window].DataContext.IsHistoryPage}" />
+            <views:PackageManagersView DataContext="{Binding PackageManagersPage}" IsVisible="{Binding $parent[Window].DataContext.IsManagersPage}" />
+            <views:SettingsView DataContext="{Binding SettingsPage}" IsVisible="{Binding $parent[Window].DataContext.IsSettingsPage}" />
+        </Grid>
+    </Grid>
+</Window>

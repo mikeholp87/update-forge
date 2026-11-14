@@ -14,7 +14,8 @@ public sealed record AppSettings
     public ScanInterval Interval { get; init; } = ScanInterval.Daily;
     public int CustomIntervalHours { get; init; } = 24;
     public bool CheckAtStartup { get; init; } = true;
-    public IReadOnlyList<string> EnabledProviders { get; init; } = ["winget", "registry", "msix", "scoop", "chocolatey", "npm"];
+    public IReadOnlyList<string> EnabledProviders { get; init; } =
+        OperatingSystem.IsWindows() ? ["winget", "registry", "msix", "scoop", "chocolatey", "npm"] : ["apt", "flatpak", "snap", "npm"];
     public IReadOnlyList<string> BlockedSources { get; init; } = [];
     public IReadOnlyList<string> PortableDirectories { get; init; } = [];
     public bool RunOnBattery { get; init; }
