@@ -22,7 +22,7 @@
         <TextBlock Grid.Row="3" Classes="muted" Text="{Binding ProviderNotice}" TextWrapping="Wrap" Margin="0,0,0,12"
                    IsVisible="{Binding ProviderNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <DataGrid x:Name="PackagesGrid" Grid.Row="4" ItemsSource="{Binding Packages}" AutoGenerateColumns="False" IsReadOnly="True"
-                  CanUserSortColumns="True" GridLinesVisibility="None" SelectionMode="Single">
+                  CanUserSortColumns="True">
             <DataGrid.ContextMenu>
                 <ContextMenu>
                     <MenuItem x:Name="ShowDetailsItem" Header="Show details" />

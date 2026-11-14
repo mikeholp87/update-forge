@@ -16,7 +16,7 @@
             <ItemsControl ItemsSource="{Binding Queue}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Classes="card" Margin="0,0,0,8">
+                        <Border Classes="panel" Margin="0,0,0,8">
                             <Grid ColumnDefinitions="2*,140,3*">
                                 <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Grid.Column="1" Text="{Binding State}" VerticalAlignment="Center" />

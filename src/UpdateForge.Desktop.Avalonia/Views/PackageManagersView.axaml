@@ -23,7 +23,7 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Border Classes="card">
+            <Border Classes="panel">
                 <StackPanel Spacing="8">
                     <TextBlock Classes="heading" Text="{Binding Selected.DisplayName}" />
                     <TextBlock Text="{Binding Selected.Details}" TextWrapping="Wrap" />
@@ -34,7 +34,7 @@
                         <Button Content="Setup instructions" Command="{Binding OpenSetupCommand}" Margin="0,0,0,8" />
                     </WrapPanel>
                     <TextBlock FontSize="12" TextWrapping="Wrap"
-                               Text="apt refresh runs apt-get update as root and asks for your password. Flatpak, Snap and npm check their catalogs during every scan. Source configuration is shown as reported by each manager; use its CLI to add or remove sources." />
+                               Text="apt refresh runs apt-get update as root and asks for your password. Homebrew refresh runs brew update. Flatpak, Snap, npm, pnpm, Bun, Yarn, Cargo and pipx check their catalogs during every scan. Source configuration is shown as reported by each manager; use its CLI to add or remove sources." />
                     <TextBox Text="{Binding SourceOutput, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="monospace" MinHeight="100" MaxHeight="260" />
                 </StackPanel>
             </Border>

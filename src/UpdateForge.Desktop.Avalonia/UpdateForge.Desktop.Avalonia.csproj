@@ -25,5 +25,7 @@
     <Compile Include="..\UpdateForge.Desktop\ViewModels\HistoryViewModel.cs" Link="ViewModels\Shared\HistoryViewModel.cs" />
     <Compile Include="..\UpdateForge.Desktop\ViewModels\PackageDetailsViewModel.cs" Link="ViewModels\Shared\PackageDetailsViewModel.cs" />
     <AvaloniaResource Include="..\UpdateForge.Desktop\Assets\UpdateForge-512.png" Link="Assets\UpdateForge-512.png" />
+    <!-- IBM Plex (SIL Open Font License 1.1, see Assets/Fonts/OFL.txt) -->
+    <AvaloniaResource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 </Project>

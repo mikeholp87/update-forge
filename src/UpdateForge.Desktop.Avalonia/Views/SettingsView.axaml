@@ -6,7 +6,7 @@
             <TextBlock Classes="title" Text="Settings" />
 
             <TextBlock Classes="heading" Text="Updates" Margin="0,16,0,0" />
-            <Border Classes="card"><StackPanel Spacing="4">
+            <Border Classes="panel"><StackPanel Spacing="4">
                 <TextBlock Text="Installation mode" />
                 <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" />
                 <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
@@ -16,7 +16,7 @@
             </StackPanel></Border>
 
             <TextBlock Classes="heading" Text="Scanning and schedule" Margin="0,16,0,0" />
-            <Border Classes="card"><StackPanel Spacing="4">
+            <Border Classes="panel"><StackPanel Spacing="4">
                 <TextBlock Text="Check interval" />
                 <ComboBox ItemsSource="{Binding Intervals}" SelectedItem="{Binding Interval}" />
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
@@ -31,7 +31,7 @@
             </StackPanel></Border>
 
             <TextBlock Classes="heading" Text="General" Margin="0,16,0,0" />
-            <Border Classes="card"><StackPanel Spacing="4">
+            <Border Classes="panel"><StackPanel Spacing="4">
                 <TextBlock Text="Theme" />
                 <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" />
                 <CheckBox Content="Minimize to the system tray" IsChecked="{Binding MinimizeToTray}" />
@@ -40,7 +40,7 @@
             </StackPanel></Border>
 
             <TextBlock Classes="heading" Text="Notifications" Margin="0,16,0,0" />
-            <Border Classes="card"><StackPanel>
+            <Border Classes="panel"><StackPanel>
                 <CheckBox Content="New updates available" IsChecked="{Binding NotifyNew}" />
                 <CheckBox Content="Updates completed" IsChecked="{Binding NotifyCompleted}" />
                 <CheckBox Content="Updates failed" IsChecked="{Binding NotifyFailed}" />
@@ -54,7 +54,7 @@
             <TextBlock Text="{Binding SaveMessage}" TextWrapping="Wrap" />
 
             <TextBlock Classes="heading" Text="About" Margin="0,24,0,0" />
-            <Border Classes="card"><StackPanel>
+            <Border Classes="panel"><StackPanel>
                 <TextBlock><Run Text="UpdateForge " /><Run Text="{Binding Version}" /></TextBlock>
                 <TextBlock Classes="muted" Text="Free and open source under the MIT License. No telemetry, no accounts, no ads." />
             </StackPanel></Border>

@@ -4,7 +4,7 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
         <TextBlock Grid.Row="0" Classes="title" Text="Update history" />
         <TextBox Grid.Row="1" Watermark="Search history" Text="{Binding Search, Mode=TwoWay}" Margin="0,12,0,12" />
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None" CanUserSortColumns="True">
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Application" Binding="{Binding ApplicationName}" Width="2*" />
                 <DataGridTextColumn Header="Previous" Binding="{Binding PreviousVersion}" Width="*" />
@@ -16,7 +16,7 @@
                 <DataGridTextColumn Header="Exit code" Binding="{Binding ExitCode}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
-        <Border Grid.Row="3" Classes="card" Margin="0,12,0,0" DataContext="{Binding Selected}" IsVisible="{Binding Converter={x:Static ObjectConverters.IsNotNull}}">
+        <Border Grid.Row="3" Classes="panel" Margin="0,12,0,0" DataContext="{Binding Selected}" IsVisible="{Binding Converter={x:Static ObjectConverters.IsNotNull}}">
             <StackPanel Spacing="8">
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
                 <TextBlock Classes="muted" Text="{Binding TechnicalDetails}" TextWrapping="Wrap" FontFamily="monospace" FontSize="12" MaxHeight="120" />

@@ -2,40 +2,231 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="UpdateForge.Desktop.App"
              RequestedThemeVariant="Default">
+    <Application.Resources>
+    <ResourceDictionary>
+        <FontFamily x:Key="UiFont">avares://updateforge/Assets/Fonts#IBM Plex Sans</FontFamily>
+        <FontFamily x:Key="MonoFont">avares://updateforge/Assets/Fonts#IBM Plex Mono</FontFamily>
+        <CornerRadius x:Key="Radius">6</CornerRadius>
+
+        <ResourceDictionary.ThemeDictionaries>
+            <!-- Graphite and signal indigo. Amber is reserved for "something is pending"; accent is only for actions. -->
+            <ResourceDictionary x:Key="Dark">
+                <SolidColorBrush x:Key="Bg" Color="#14171B" />
+                <SolidColorBrush x:Key="Panel" Color="#1B1F25" />
+                <SolidColorBrush x:Key="PanelHover" Color="#232831" />
+                <SolidColorBrush x:Key="Line" Color="#2A3038" />
+                <SolidColorBrush x:Key="Text" Color="#E4E8EC" />
+                <SolidColorBrush x:Key="Muted" Color="#8A94A0" />
+                <SolidColorBrush x:Key="Accent" Color="#6F7FFF" />
+                <SolidColorBrush x:Key="AccentText" Color="#0E1020" />
+                <SolidColorBrush x:Key="AccentSoft" Color="#222A52" />
+                <SolidColorBrush x:Key="Warn" Color="#E8A33D" />
+                <SolidColorBrush x:Key="Ok" Color="#5FB58B" />
+                <SolidColorBrush x:Key="Bad" Color="#EE6A57" />
+                <SolidColorBrush x:Key="TextControlBackground" Color="#1B1F25" />
+                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1B1F25" />
+                <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#1B1F25" />
+                <SolidColorBrush x:Key="TextControlBorderBrush" Color="#2A3038" />
+                <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#3A424D" />
+                <SolidColorBrush x:Key="ComboBoxBackground" Color="#1B1F25" />
+                <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#232831" />
+                <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#2A3038" />
+            </ResourceDictionary>
+            <ResourceDictionary x:Key="Light">
+                <SolidColorBrush x:Key="Bg" Color="#F2F4F6" />
+                <SolidColorBrush x:Key="Panel" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="PanelHover" Color="#E9EDF1" />
+                <SolidColorBrush x:Key="Line" Color="#D9DFE5" />
+                <SolidColorBrush x:Key="Text" Color="#171B1F" />
+                <SolidColorBrush x:Key="Muted" Color="#5F6B77" />
+                <SolidColorBrush x:Key="Accent" Color="#4453D6" />
+                <SolidColorBrush x:Key="AccentText" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="AccentSoft" Color="#E1E5FB" />
+                <SolidColorBrush x:Key="Warn" Color="#A8620A" />
+                <SolidColorBrush x:Key="Ok" Color="#2C7D5A" />
+                <SolidColorBrush x:Key="Bad" Color="#C2402E" />
+                <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="TextControlBorderBrush" Color="#D9DFE5" />
+                <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#C5CCD4" />
+                <SolidColorBrush x:Key="ComboBoxBackground" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#E9EDF1" />
+                <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#D9DFE5" />
+            </ResourceDictionary>
+        </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
-        <FluentTheme />
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Dark" Accent="#6F7FFF" RegionColor="#14171B" BaseHigh="#E4E8EC" BaseMediumHigh="#C5CBD2" BaseMedium="#8A94A0"
+                                       BaseMediumLow="#5A636E" BaseLow="#2A3038" ListLow="#232831" ListMedium="#2B3140" ChromeLow="#1B1F25" ChromeMediumLow="#232831"
+                                       ChromeHigh="#3A424D" AltHigh="#14171B" />
+                <ColorPaletteResources x:Key="Light" Accent="#4453D6" RegionColor="#F2F4F6" BaseHigh="#171B1F" BaseMediumHigh="#39424B" BaseMedium="#5F6B77"
+                                       BaseMediumLow="#8A94A0" BaseLow="#D9DFE5" ListLow="#E9EDF1" ListMedium="#DCE2E8" ChromeLow="#FFFFFF" ChromeMediumLow="#E9EDF1"
+                                       ChromeHigh="#C5CCD4" AltHigh="#FFFFFF" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
 
-        <Style Selector="TextBlock.title">
-            <Setter Property="FontSize" Value="28" />
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource Bg}" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <!-- Type scale: 40 / 22 / 15 / 13 / 12 -->
+        <Style Selector="TextBlock.headline">
+            <Setter Property="FontSize" Value="40" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="LetterSpacing" Value="-0.8" />
+        </Style>
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="LetterSpacing" Value="-0.3" />
+            <Setter Property="Margin" Value="0,0,0,2" />
         </Style>
         <Style Selector="TextBlock.heading">
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-        <Style Selector="TextBlock.stat">
-            <Setter Property="FontSize" Value="32" />
+            <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="TextBlock.muted">
-            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="Foreground" Value="{DynamicResource Muted}" />
         </Style>
-        <Style Selector="Border.card">
+        <Style Selector="TextBlock.pending">
+            <Setter Property="Foreground" Value="{DynamicResource Warn}" />
+        </Style>
+        <Style Selector="TextBlock.small">
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <!-- Surfaces: one radius, one hairline. -->
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
             <Setter Property="Padding" Value="16" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
         </Style>
+        <Style Selector="Border.rule">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource Line}" />
+        </Style>
+
+        <!-- Buttons -->
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource PanelHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+        </Style>
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+        </Style>
+        <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+            <Setter Property="Opacity" Value="0.88" />
+        </Style>
+        <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+        <Style Selector="Button.quiet">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+        <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource PanelHover}" />
+        </Style>
+
+        <!-- Navigation: a bar marks where you are; no filled pills. -->
         <Style Selector="Button.nav">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="0,6,6,0" />
+            <Setter Property="Padding" Value="16,9" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="{DynamicResource Muted}" />
         </Style>
-        <Style Selector="Button.nav.active">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
+        </Style>
+        <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
             <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- Inputs -->
+        <Style Selector="TextBox, ComboBox, NumericUpDown">
+            <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+        </Style>
+
+        <!-- Tables: hairline rows, muted headers, no vertical rules. -->
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="RowHeight" Value="36" />
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Line}" />
+            <Setter Property="SelectionMode" Value="Single" />
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="SeparatorBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+            <Setter Property="Fill" Value="{DynamicResource Panel}" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+            <Setter Property="Fill" Value="{DynamicResource AccentSoft}" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+        </Style>
+        <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+        </Style>
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
         </Style>
     </Application.Styles>
 </Application>

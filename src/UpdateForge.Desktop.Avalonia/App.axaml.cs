@@ -63,6 +63,12 @@ public sealed class App : Avalonia.Application
             .AddSingleton<IUpdateProvider, FlatpakProvider>()
             .AddSingleton<IUpdateProvider, SnapProvider>()
             .AddSingleton<IUpdateProvider, NpmProvider>()
+            .AddSingleton<IUpdateProvider, PnpmProvider>()
+            .AddSingleton<IUpdateProvider, BunProvider>()
+            .AddSingleton<IUpdateProvider, YarnProvider>()
+            .AddSingleton<IUpdateProvider, CargoProvider>()
+            .AddSingleton<IUpdateProvider, PipxProvider>()
+            .AddSingleton<IUpdateProvider, HomebrewProvider>()
             .AddSingleton<IScheduleService, SystemdScheduleService>()
             .AddSingleton<IDialogService, DialogService>()
             .AddSingleton<HistoryViewModel>()
@@ -92,6 +98,10 @@ public sealed class App : Avalonia.Application
             ApplyTheme(s.Theme);
             await shell.ReloadSettingsAsync();
         };
+
+        // --page=Applications|Discover|Queue|History|PackageManagers|Settings opens that page first (for launcher actions and docs).
+        if (args.FirstOrDefault(a => a.StartsWith("--page=", StringComparison.Ordinal)) is { } pageArg && Enum.TryParse<PageId>(pageArg["--page=".Length..], ignoreCase: true, out var page))
+            shell.NavigateCommand.Execute(page);
 
         if (!_settings.MinimizeToTray || !args.Contains("--minimized")) _window.Show();
         Program.Single.Listen(() => Dispatcher.UIThread.Post(ShowWindow));

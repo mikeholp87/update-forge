@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,13 @@ using UpdateForge.Core.Updates;
 using UpdateForge.Desktop.Services;
 
 namespace UpdateForge.Desktop.ViewModels;
+
+/// <summary>One package manager's share of the inventory, for the dashboard's breakdown bar and list.</summary>
+public sealed record ProviderSummary(string Id, string Name, int Count, int Pending, Avalonia.Media.IBrush Brush)
+{
+    public string PendingText => Pending == 0 ? "nothing pending" : $"{Pending} pending";
+    public bool HasPending => Pending > 0;
+}
 
 public enum PageId { Dashboard, Applications, Queue, History, PackageManagers, Settings, Discover }
 
@@ -62,15 +70,15 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private string _search = "";
     [ObservableProperty] private AppRowViewModel? _selected;
     [ObservableProperty] private string _status = "Ready";
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle)), NotifyPropertyChangedFor(nameof(NoUpdatesNotice))] private bool _isBusy;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle)), NotifyPropertyChangedFor(nameof(NoUpdatesNotice)), NotifyPropertyChangedFor(nameof(Headline))] private bool _isBusy;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isUpdating;
     [ObservableProperty] private double _overallProgress;
     [ObservableProperty] private bool _overallIndeterminate;
-    [ObservableProperty] private int _installedCount;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(NoUpdatesNotice))] private int _updatesCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Subline))] private int _installedCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(NoUpdatesNotice)), NotifyPropertyChangedFor(nameof(Headline)), NotifyPropertyChangedFor(nameof(HasUpdates))] private int _updatesCount;
     [ObservableProperty] private int _upToDateCount;
-    [ObservableProperty] private int _attentionCount;
-    [ObservableProperty] private string _lastScanText = "Never";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(AttentionText))] private int _attentionCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Subline))] private string _lastScanText = "Never";
     [ObservableProperty] private string _lastSuccessText = "—";
     [ObservableProperty] private string _providerNotice = "";
     [ObservableProperty] private string _automaticText = "Automatic updates: off";
@@ -80,6 +88,43 @@ public sealed partial class ShellViewModel : ObservableObject
     public bool IsIdle => !IsBusy && !IsUpdating;
 
     /// <summary>The dashboard's "everything is up to date" line shows only when nothing is pending and no scan is running.</summary>
+    /// <summary>The dashboard's one-line answer: what needs the user, or that nothing does.</summary>
+    public string Headline => IsBusy ? "Checking…" : UpdatesCount switch { 0 => "Up to date", 1 => "1 update ready", _ => $"{UpdatesCount} updates ready" };
+
+    public bool HasUpdates => UpdatesCount > 0;
+
+    public string Subline => InstalledCount == 0 && LastScanText == "Never" ? "No scan yet. Scan to see what is installed."
+        : $"{InstalledCount} packages from {Providers.Count} {(Providers.Count == 1 ? "manager" : "managers")}, last scanned {LastScanText}";
+
+    public string AttentionText => AttentionCount == 0 ? "" : $"{AttentionCount} need a look: held back, excluded, or not updatable automatically.";
+
+    public ObservableCollection<ProviderSummary> Providers { get; } = [];
+
+    private static readonly Dictionary<string, (string Name, string Color)> ProviderStyle = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["apt"] = ("apt", "#6F7FFF"),
+        ["flatpak"] = ("Flatpak", "#3AA6A0"),
+        ["snap"] = ("Snap", "#C76BB4"),
+        ["npm"] = ("npm", "#8DB35A"),
+        ["pnpm"] = ("pnpm", "#E0A030"),
+        ["bun"] = ("Bun", "#E8D5B0"),
+        ["yarn"] = ("Yarn", "#4F9FD6"),
+        ["cargo"] = ("Cargo", "#D1703C"),
+        ["pipx"] = ("pipx", "#5B8FD9"),
+        ["brew"] = ("Homebrew", "#D9A93E"),
+    };
+
+    private void RebuildProviders()
+    {
+        Providers.Clear();
+        foreach (var g in Apps.GroupBy(r => r.App.ProviderId, StringComparer.OrdinalIgnoreCase).OrderByDescending(g => g.Count()))
+        {
+            var (name, color) = ProviderStyle.TryGetValue(g.Key, out var st) ? st : (g.Key, "#8A94A0");
+            Providers.Add(new ProviderSummary(g.Key, name, g.Count(), g.Count(r => r.App.UpdateAvailable && !r.IsExcluded), new SolidColorBrush(Color.Parse(color))));
+        }
+        OnPropertyChanged(nameof(Subline));
+    }
+
     public bool NoUpdatesNotice => UpdatesCount == 0 && !IsBusy;
 
     public event Action<string, string>? Notify;
@@ -168,6 +213,7 @@ public sealed partial class ShellViewModel : ObservableObject
         UpToDateCount = Apps.Count(r => r.App.Status == UpdateStatus.UpToDate);
         AttentionCount = Apps.Count(r => r.NeedsAttention);
         Selected = keepSelected is null ? null : Apps.FirstOrDefault(r => r.App.Id == keepSelected);
+        RebuildProviders();
         RefreshFilter();
         DiscoverPage.RefreshInstalledState();
     }
