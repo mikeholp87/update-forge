@@ -4,7 +4,7 @@ Website: <https://mikeholp87.github.io/update-forge/>
 
 A free, open-source (MIT) software updater for **Windows 11** (and compatible Windows 10) and **Linux**. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
 
-> **Status: 0.1.0 release candidate, not yet released.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
+> **Status: 0.2.0.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
 
 ## Features
 
@@ -42,13 +42,22 @@ Build and package (needs the .NET 10 SDK):
 ```bash
 dotnet build UpdateForge.CI.slnf -c Release
 dotnet test --project tests/UpdateForge.Core.Tests
-./scripts/publish-linux.sh 0.1.0      # artifacts/*.deb and a portable .tar.gz
-sudo apt install ./artifacts/updateforge_0.1.0_amd64.deb
+./scripts/publish-linux.sh 0.2.0      # artifacts/*.deb and a portable .tar.gz
+sudo apt install ./artifacts/updateforge_0.2.0_amd64.deb
 ```
 
 ## Install
 
-Release artifacts (when published): per-user MSI (no admin needed) and a portable ZIP, each with SHA-256 sums. Unsigned builds may show a SmartScreen warning; UpdateForge does not suppress it.
+**Debian / Ubuntu (apt)**: signed repository, updates arrive through `apt upgrade`.
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://mikeholp87.github.io/apt/apt.asc | sudo tee /etc/apt/keyrings/mikeholp87-apt.asc >/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/mikeholp87-apt.asc] https://mikeholp87.github.io/apt/ ./" | sudo tee /etc/apt/sources.list.d/mikeholp87-apt.list
+sudo apt update && sudo apt install updateforge
+```
+
+**Windows**: release artifacts: per-user MSI (no admin needed) and a portable ZIP, each with SHA-256 sums. Unsigned builds may show a SmartScreen warning; UpdateForge does not suppress it.
 
 ## How automatic updates work
 

@@ -3,7 +3,7 @@
 #   ./scripts/publish-linux.sh [version] [linux-x64|linux-arm64]
 set -euo pipefail
 
-version="${1:-0.1.0}"
+version="${1:-0.2.0}"
 rid="${2:-linux-x64}"
 case "$rid" in
 linux-x64) arch=amd64 ;;
@@ -42,7 +42,7 @@ cat >"$pkg/DEBIAN/control" <<CONTROL
 Package: updateforge
 Version: $version
 Architecture: $arch
-Maintainer: UpdateForge contributors <noreply@users.noreply.github.com>
+Maintainer: Mike Holp <4627227+mikeholp87@users.noreply.github.com>
 Section: utils
 Priority: optional
 Homepage: https://mikeholp87.github.io/update-forge/
