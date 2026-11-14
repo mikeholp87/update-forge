@@ -28,6 +28,12 @@ internal static class ExitCodes
 
 internal static class Program
 {
+    /// <summary>
+    /// Messages can carry lines a package manager printed while a crate or package built, and a terminal obeys escape sequences
+    /// (retitle, cursor moves, hidden text). Control characters are dropped before anything is written to one.
+    /// </summary>
+    internal static string? Plain(string? s) => s is null ? null : new string([.. s.Where(c => c == '\t' || !char.IsControl(c))]);
+
     private static readonly JsonSerializerOptions JsonOut = new() { WriteIndented = true, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
 
     private static readonly CancellationTokenSource HardCancel = new();
@@ -137,7 +143,7 @@ internal static class Program
         var apps = outdatedOnly ? result.Applications.Where(a => a.UpdateAvailable).ToList() : result.Applications.ToList();
         Print(apps, json, $"{result.Applications.Count} applications, {result.Applications.Count(a => a.UpdateAvailable)} with updates, scanned in {result.Duration.TotalSeconds:F1}s");
         foreach (var p in result.Providers.Where(p => p.Availability.Health != ProviderHealth.NotInstalled && (!p.Availability.IsAvailable || p.Error is not null)))
-            Console.Error.WriteLine($"! Provider {p.ProviderId}: {p.Error ?? p.Availability.Message}");
+            Console.Error.WriteLine($"! Provider {p.ProviderId}: {Plain(p.Error ?? p.Availability.Message)}");
         return outdatedOnly && apps.Count > 0 ? ExitCodes.UpdatesAvailable : ExitCodes.Ok;
     }
 
@@ -194,13 +200,13 @@ internal static class Program
             EnabledProviders = new HashSet<string>(settings.EnabledProviders, StringComparer.OrdinalIgnoreCase),
         };
 
-        var progress = new Progress<EngineProgress>(p => { if (!json) Console.Error.WriteLine($"[{p.Index}/{p.Total}] {p.ApplicationName}: {p.State} - {p.Message}"); });
+        var progress = new Progress<EngineProgress>(p => { if (!json) Console.Error.WriteLine($"[{p.Index}/{p.Total}] {p.ApplicationName}: {p.State} - {Plain(p.Message)}"); });
         var results = await sp.GetRequiredService<UpdateEngine>().RunAsync(targets, policy, unattended: false, progress, settings.MaxParallelUpdates, ct, HardCancel.Token);
 
         if (json)
             Console.WriteLine(JsonSerializer.Serialize(results.Select(r => new { r.Application.Id, r.Application.Name, State = r.FinalState.ToString(), r.Message, ExitCode = r.Result?.ExitCode, VersionAfter = r.Result?.VersionAfter }), JsonOut));
         else
-            foreach (var r in results) Console.WriteLine($"{r.Application.Name}: {r.FinalState} - {r.Message}");
+            foreach (var r in results) Console.WriteLine($"{r.Application.Name}: {r.FinalState} - {Plain(r.Message)}");
 
         return results.Any(r => r.FinalState is JobState.Failed or JobState.Blocked) ? ExitCodes.SomeFailed : ExitCodes.Ok;
     }
@@ -312,7 +318,7 @@ internal static class Program
 
         var results = await svc.InstallMissingAsync(plan, args.Contains("--exact-versions"), new Progress<string>(m => { if (!json) Console.Error.WriteLine(m); }), ct, hardCancel);
         if (json) Console.WriteLine(JsonSerializer.Serialize(results.Select(r => new { r.Package.Id, State = r.State.ToString(), r.Message }), JsonOut));
-        else foreach (var r in results) Console.WriteLine($"{r.Package.Name ?? r.Package.Id}: {r.State} - {r.Message}");
+        else foreach (var r in results) Console.WriteLine($"{r.Package.Name ?? r.Package.Id}: {r.State} - {Plain(r.Message)}");
         return results.Any(r => r.State is JobState.Failed or JobState.Blocked) ? ExitCodes.SomeFailed : ExitCodes.Ok;
     }
 
@@ -361,7 +367,7 @@ internal static class Program
         if (json) Console.WriteLine(JsonSerializer.Serialize(items, JsonOut));
         else
         {
-            foreach (var h in items) Console.WriteLine($"{h.CompletedAt.LocalDateTime:g}  {h.ApplicationName,-36} {h.PreviousVersion} -> {h.NewVersion ?? h.RequestedVersion}  {h.FinalState}  {h.Message}");
+            foreach (var h in items) Console.WriteLine($"{h.CompletedAt.LocalDateTime:g}  {h.ApplicationName,-36} {h.PreviousVersion} -> {h.NewVersion ?? h.RequestedVersion}  {h.FinalState}  {Plain(h.Message)}");
             if (items.Count == 0) Console.WriteLine("No update history yet.");
         }
         return ExitCodes.Ok;
