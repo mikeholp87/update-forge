@@ -22,6 +22,7 @@ public class SystemdScheduleTests : IDisposable
     [Fact]
     public void Daily_default_writes_a_persistent_calendar_timer_and_enables_it()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "systemd unit paths are Linux paths; a Windows temp path contains backslashes.");
         var runner = new ScriptedRunner(_ => Ok());
         new SystemdScheduleService(runner, _dir).Apply(new AppSettings(), _exe);
 
@@ -57,6 +58,7 @@ public class SystemdScheduleTests : IDisposable
     [Fact]
     public void On_launch_removes_instead_of_scheduling()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "systemd unit paths are Linux paths; a Windows temp path contains backslashes.");
         var runner = new ScriptedRunner(_ => Ok());
         var svc = new SystemdScheduleService(runner, _dir);
         svc.Apply(new AppSettings(), _exe);
@@ -83,6 +85,7 @@ public class SystemdScheduleTests : IDisposable
     [Fact]
     public void Failed_enable_is_reported()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "systemd unit paths are Linux paths; a Windows temp path contains backslashes.");
         var runner = new ScriptedRunner(s => s.Arguments.Contains("enable") ? new ProcessResult(1, "", "Failed to connect to bus", false) : Ok());
         var ex = Assert.Throws<InvalidOperationException>(() => new SystemdScheduleService(runner, _dir).Apply(new AppSettings(), _exe));
         Assert.Contains("Failed to connect to bus", ex.Message);
