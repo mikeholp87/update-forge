@@ -17,7 +17,7 @@ public sealed class BackgroundRunner(
     INetworkCostProbe network,
     ILogger<BackgroundRunner> log)
 {
-    public static string SummaryPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UpdateForge", "last-background-run.json");
+    public static string SummaryPath => Path.Combine(UpdateForge.Core.Storage.PrivateStorage.DataDirectory, "last-background-run.json");
 
     public async Task<BackgroundRunSummary> RunAsync(CancellationToken ct)
     {

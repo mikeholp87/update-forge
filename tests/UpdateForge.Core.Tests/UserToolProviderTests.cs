@@ -491,3 +491,30 @@ public class ShebanglessLauncherTests : IDisposable
         Assert.Equal("x; rm -rf ~", spec.Arguments[^1]);
     }
 }
+
+public class RootGuardTests
+{
+    private static UserToolProvider[] AsRoot(ScriptedRunner r) =>
+    [
+        new CargoProvider(r, NullLogger<CargoProvider>.Instance, "/fake/bin") { IsRoot = () => true },
+        new PnpmProvider(r, NullLogger<PnpmProvider>.Instance, "/fake/bin") { IsRoot = () => true },
+        new BunProvider(r, NullLogger<BunProvider>.Instance, "/fake/bin") { IsRoot = () => true },
+        new YarnProvider(r, NullLogger<YarnProvider>.Instance, "/fake/bin") { IsRoot = () => true },
+        new PipxProvider(r, NullLogger<PipxProvider>.Instance, "/fake/bin") { IsRoot = () => true },
+        new HomebrewProvider(r, NullLogger<HomebrewProvider>.Instance, "/fake/bin") { IsRoot = () => true },
+    ];
+
+    [Fact]
+    public async Task Per_user_tools_refuse_to_run_as_root_and_start_nothing()
+    {
+        var runner = new ScriptedRunner(_ => new ProcessResult(0, "1.0.0", "", false));
+        foreach (var p in AsRoot(runner))
+        {
+            Assert.Equal(ProviderHealth.Unavailable, (await p.CheckAvailabilityAsync(CancellationToken.None)).Health);
+            var app = new InstalledApplication { Id = "x", Name = "tool", ProviderId = p.Id, PackageId = "tool", AvailableVersion = "1.0.0" };
+            Assert.Equal(ErrorCategory.SecurityBlocked, (await p.UpdateAsync(new UpdateRequest(app), new Progress<UpdateProgress>(), CancellationToken.None)).Error);
+            Assert.Equal(ErrorCategory.SecurityBlocked, (await p.InstallAsync(new InstallRequest("tool", null), new Progress<UpdateProgress>(), CancellationToken.None)).Error);
+        }
+        Assert.Empty(runner.Calls);
+    }
+}

@@ -49,6 +49,11 @@ public abstract partial class UserToolProvider : IUpdateProvider, IPackageManage
 
     internal string? Exe => LinuxTools.FindUser(ExeName, _binDirectory);
 
+    /// <summary>True when running as root. These tools run registry code (build scripts, lifecycle scripts) and write into the user's home, so as root they would run that code with full privileges. Unix only: an elevated Windows process (an admin account, a CI runner) is not root in this sense, and these are Linux tools. Settable for tests.</summary>
+    internal Func<bool> IsRoot { get; init; } = () => !OperatingSystem.IsWindows() && Environment.IsPrivilegedProcess;
+
+    private string RootRefusal => DisplayName + " is a per-user tool and will not run as root. Start UpdateForge as your normal user.";
+
     [GeneratedRegex(@"^[0-9A-Za-z][0-9A-Za-z.+\-]{0,63}$", RegexOptions.CultureInvariant)]
     private static partial Regex VersionPattern();
 
@@ -75,6 +80,7 @@ public abstract partial class UserToolProvider : IUpdateProvider, IPackageManage
 
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {
+        if (IsRoot()) return ProviderAvailability.Unavailable(RootRefusal);
         var probe = await LinuxTools.ProbeAsync(Runner, Exe, DisplayName + " is not installed.", VersionArg, cancellationToken, Env).ConfigureAwait(false);
         if (probe.Problem is null && VersionProblem(probe.Version ?? "") is { } problem) return ProviderAvailability.Unavailable(problem);
         return probe.ToAvailability();
@@ -136,6 +142,7 @@ public abstract partial class UserToolProvider : IUpdateProvider, IPackageManage
 
     public async Task<UpdateResult> UpdateAsync(UpdateRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
     {
+        if (IsRoot()) return UpdateResult.Fail(ErrorCategory.SecurityBlocked, RootRefusal);
         var app = request.Application;
         var version = SupportsVersionPin ? request.TargetVersion ?? app.AvailableVersion : null;
         if (app.ProviderId != Id || !IsValidName(app.PackageId))
@@ -152,6 +159,7 @@ public abstract partial class UserToolProvider : IUpdateProvider, IPackageManage
 
     public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
     {
+        if (IsRoot()) return UpdateResult.Fail(ErrorCategory.SecurityBlocked, RootRefusal);
         if (!IsValidName(request.PackageId))
             return UpdateResult.Fail(ErrorCategory.SecurityBlocked, DisplayName + " package name failed validation; refusing to run.");
         if (request.Version is not null && !SupportsVersionPin)

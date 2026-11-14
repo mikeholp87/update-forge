@@ -70,6 +70,20 @@ public class SecurityHardeningTests
     }
 
     [Fact]
+    public void DataDirectory_StaysAbsoluteWhenTheBaseFolderDoesNotExistYet()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var missing = Path.Combine(Path.GetTempPath(), "uf-missing-" + Guid.NewGuid().ToString("N"));
+        var old = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        try
+        {
+            Environment.SetEnvironmentVariable("XDG_DATA_HOME", missing);
+            Assert.Equal(Path.Combine(missing, "UpdateForge"), PrivateStorage.DataDirectory);
+        }
+        finally { Environment.SetEnvironmentVariable("XDG_DATA_HOME", old); }
+    }
+
+    [Fact]
     public async Task ProcessRunner_DoesNotRunInTheCallersFolder()
     {
         if (OperatingSystem.IsWindows()) return;
