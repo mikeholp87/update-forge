@@ -14,7 +14,7 @@ public sealed class Database
         _connectionString = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadWriteCreate, Cache = SqliteCacheMode.Shared, Pooling = true }.ToString();
     }
 
-    public static string DefaultPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UpdateForge", "updateforge.db");
+    public static string DefaultPath => Path.Combine(UpdateForge.Core.Storage.PrivateStorage.DataDirectory, "updateforge.db");
 
     public SqliteConnection Open()
     {

@@ -27,8 +27,13 @@ for proj in src/UpdateForge.Desktop.Avalonia src/UpdateForge.Cli; do
 		"-p:Version=$version" -p:DebugType=none -p:DebugSymbols=false
 done
 cp LICENSE "$out/"
-# The build inherits the caller's umask (often 0002, so group-writable); ship 755 dirs/executables and 644 files.
-chmod -R go-w,a+rX "$out"
+# dotnet publish marks every .dll/.so executable and inherits the caller's umask (often 0002, so group-writable). Ship 755
+# folders and programs, 644 for everything else (shared libraries do not need the execute bit).
+find "$out" -type d -exec chmod 755 {} +
+find "$out" -type f -exec chmod 644 {} +
+for exe in updateforge updateforge-cli createdump; do
+	if [[ -f "$out/$exe" ]]; then chmod 755 "$out/$exe"; fi
+done
 
 # Portable tarball (unpack anywhere, run ./updateforge).
 tar -C "$out" -czf "artifacts/UpdateForge-$version-$rid-portable.tar.gz" .

@@ -60,7 +60,7 @@ public sealed class MutexEngineLock : IEngineLock
 
 public static class ServiceCollectionExtensions
 {
-    public static string LogDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UpdateForge", "logs");
+    public static string LogDirectory => Path.Combine(PrivateStorage.DataDirectory, "logs");
 
     public static IServiceCollection AddUpdateForgeCore(this IServiceCollection services, string? databasePath = null)
     {
@@ -88,7 +88,7 @@ public static class ServiceCollectionExtensions
 
         PrivateStorage.CreateDirectory(LogDirectory);
         // Earlier versions created these with the default umask (often world-readable); only the app's own folder is tightened.
-        if (databasePath is null) PrivateStorage.Tighten(Path.GetDirectoryName(Database.DefaultPath)!);
+        if (databasePath is null) PrivateStorage.Tighten(PrivateStorage.DataDirectory);
         var logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File(Path.Combine(LogDirectory, "updateforge-.log"), rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14,

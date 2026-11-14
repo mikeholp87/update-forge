@@ -11,6 +11,13 @@ public static class PrivateStorage
     private const UnixFileMode GroupAndOther = UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute
         | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
+    /// <summary>
+    /// UpdateForge's per-user data folder (<c>~/.local/share/UpdateForge</c>, <c>%LOCALAPPDATA%\UpdateForge</c>). DoNotVerify matters:
+    /// by default .NET returns "" when the base folder does not exist yet (a fresh account), which would put the data in the working folder.
+    /// </summary>
+    public static string DataDirectory =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify), "UpdateForge");
+
     /// <summary>Creates the folder (and missing parents) owner-only. An existing folder keeps its mode; use <see cref="Tighten"/> for ones this app owns.</summary>
     public static void CreateDirectory(string path)
     {
@@ -47,7 +54,7 @@ public static class PrivateStorage
     public static string RuntimeDirectory()
     {
         if (Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR") is { Length: > 0 } r && Path.IsPathRooted(r) && Directory.Exists(r)) return r;
-        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UpdateForge", "run");
+        var dir = Path.Combine(DataDirectory, "run");
         CreateDirectory(dir);
         return dir;
     }
