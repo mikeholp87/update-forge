@@ -160,13 +160,10 @@ public sealed partial class NpmProvider : IUpdateProvider, IPackageManager, IPac
     public bool CanRefreshSources => false;
     public ProviderCapabilities Capabilities { get; } = new(true, true, true, SupportsPins: false);
 
-    [GeneratedRegex(@"^(@[a-z0-9][a-z0-9._~\-]{0,213}/)?[a-z0-9][a-z0-9._~\-]{0,213}$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
-    private static partial Regex NamePattern();
-
     [GeneratedRegex(@"^[0-9A-Za-z][0-9A-Za-z.+\-]{0,63}$", RegexOptions.CultureInvariant)]
     private static partial Regex VersionPattern();
 
-    internal static bool IsValidName(string? name) => name is { Length: <= 214 } && NamePattern().IsMatch(name);
+    internal static bool IsValidName(string? name) => NpmPackageName.IsValid(name);
 
     /// <summary>
     /// Finds node and the npm CLI script. Windows: both next to each other (the official installer's layout). Elsewhere: <c>node</c> and

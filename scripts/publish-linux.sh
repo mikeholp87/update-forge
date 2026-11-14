@@ -27,6 +27,8 @@ for proj in src/UpdateForge.Desktop.Avalonia src/UpdateForge.Cli; do
 		"-p:Version=$version" -p:DebugType=none -p:DebugSymbols=false
 done
 cp LICENSE "$out/"
+# The build inherits the caller's umask (often 0002, so group-writable); ship 755 dirs/executables and 644 files.
+chmod -R go-w,a+rX "$out"
 
 # Portable tarball (unpack anywhere, run ./updateforge).
 tar -C "$out" -czf "artifacts/UpdateForge-$version-$rid-portable.tar.gz" .
@@ -53,6 +55,7 @@ Description: Software updater for apt, Flatpak, Snap and npm
  newer version, and installs updates through the system's package managers,
  on demand or on a schedule (systemd user timer). No telemetry, no accounts.
 CONTROL
+chmod -R go-w,a+rX "$pkg"
 dpkg-deb --root-owner-group --build "$pkg" "artifacts/updateforge_${version}_${arch}.deb" >/dev/null
 
 (cd artifacts && sha256sum "UpdateForge-$version-$rid-portable.tar.gz" "updateforge_${version}_${arch}.deb" >"SHA256SUMS-linux")

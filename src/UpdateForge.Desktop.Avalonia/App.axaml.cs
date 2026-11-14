@@ -169,7 +169,7 @@ public sealed class App : Avalonia.Application
     private void WatchBackgroundSummary()
     {
         var dir = Path.GetDirectoryName(BackgroundRunner.SummaryPath)!;
-        Directory.CreateDirectory(dir);
+        UpdateForge.Core.Storage.PrivateStorage.CreateDirectory(dir);
         _summaryWatcher = new FileSystemWatcher(dir, Path.GetFileName(BackgroundRunner.SummaryPath)) { EnableRaisingEvents = true, NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName };
         _summaryWatcher.Changed += (_, _) => OnSummary();
         _summaryWatcher.Created += (_, _) => OnSummary();

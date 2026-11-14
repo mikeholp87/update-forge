@@ -26,11 +26,15 @@ internal static class LinuxTools
     /// Per-user tools (cargo, pnpm, bun, yarn, pipx, Homebrew) live in the user's home or under /home/linuxbrew, usually in directories a
     /// desktop launcher's PATH lacks. Looks in the PATH, the tools' own environment variables, then their usual install folders.
     /// Relative entries are ignored so the working directory can never supply the executable.
+    /// Running as root (sudo -E, doas, a root service) only the fixed system directories are searched: the PATH and home folders are
+    /// then writable by an ordinary user, and whatever they hold would run as root.
     /// </summary>
-    internal static string? FindUser(string name, string? binDirectory = null)
+    internal static string? FindUser(string name, string? binDirectory = null) => FindUser(name, binDirectory, Environment.IsPrivilegedProcess);
+
+    internal static string? FindUser(string name, string? binDirectory, bool privileged)
     {
         if (binDirectory is not null) return Path.Combine(binDirectory, name);
-        foreach (var dir in UserDirs())
+        foreach (var dir in privileged ? Dirs : UserDirs())
         {
             if (!Path.IsPathRooted(dir)) continue;
             var path = Path.Combine(dir, name);

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using UpdateForge.Application;
 using UpdateForge.Core.Processes;
+using UpdateForge.Core.Storage;
 using UpdateForge.Infrastructure.Persistence;
 
 namespace UpdateForge.Infrastructure;
@@ -36,8 +37,7 @@ public sealed class MutexEngineLock : IEngineLock
 
     private Releaser? TryAcquireFile()
     {
-        var dir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR") is { Length: > 0 } r && Directory.Exists(r) ? r : Path.GetTempPath();
-        var file = Path.Combine(dir, new string([.. _name.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_')]) + ".lock");
+        var file = Path.Combine(PrivateStorage.RuntimeDirectory(), new string([.. _name.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_')]) + ".lock");
         try
         {
             // FileShare.None maps to an exclusive flock on Unix, so a second handle (this or another process) is refused.
@@ -86,7 +86,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<RecommendationService>();
         services.AddSingleton<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>();
 
-        Directory.CreateDirectory(LogDirectory);
+        PrivateStorage.CreateDirectory(LogDirectory);
+        // Earlier versions created these with the default umask (often world-readable); only the app's own folder is tightened.
+        if (databasePath is null) PrivateStorage.Tighten(Path.GetDirectoryName(Database.DefaultPath)!);
         var logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File(Path.Combine(LogDirectory, "updateforge-.log"), rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14,

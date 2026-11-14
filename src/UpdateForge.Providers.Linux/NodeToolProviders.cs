@@ -8,11 +8,7 @@ namespace UpdateForge.Providers.Linux;
 
 public static partial class NodeToolParsing
 {
-    [GeneratedRegex(@"^(@[a-z0-9][a-z0-9._~\-]{0,213}/)?[a-z0-9][a-z0-9._~\-]{0,213}$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
-    private static partial Regex NamePattern();
-
-    /// <summary>npm package names, scoped or not. Must start with a letter or digit, so a name can never be read as an option.</summary>
-    internal static bool IsValidName(string? name) => name is { Length: <= 214 } && NamePattern().IsMatch(name);
+    internal static bool IsValidName(string? name) => UpdateForge.Core.Providers.NpmPackageName.IsValid(name);
 
     /// <summary>Versions that are not a registry release (<c>link:</c>, <c>file:</c>, <c>workspace:</c>, a git URL) mean the package is linked locally.</summary>
     internal static bool IsLinked(string version) => version.Contains(':');
