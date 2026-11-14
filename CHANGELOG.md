@@ -1,8 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.3.0] - 2026-11-14
 ### Added
 - Linux providers for pnpm, Bun, Yarn Classic (1.x), Cargo, pipx and Homebrew.
+### Changed
+- Redesigned Linux GUI: graphite theme, IBM Plex fonts, dashboard that answers first.
 
 ## [0.2.0] - 2026-11-14
 ### Added

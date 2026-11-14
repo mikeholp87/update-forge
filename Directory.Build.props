@@ -7,7 +7,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <Deterministic>true</Deterministic>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <!-- Lets Linux/macOS restore and compile the Windows-only projects (WPF, registry, Task Scheduler) so the whole solution builds everywhere. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Authors>UpdateForge contributors</Authors>

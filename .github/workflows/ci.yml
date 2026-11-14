@@ -43,10 +43,10 @@ jobs:
       - name: Test
         run: dotnet test --project tests/UpdateForge.Core.Tests -c Release --no-build
       - name: Publish Linux packages
-        run: ./scripts/publish-linux.sh 0.2.0
+        run: ./scripts/publish-linux.sh 0.3.0
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: updateforge-0.2.0-linux
+          name: updateforge-0.3.0-linux
           path: |
             artifacts/*.deb
             artifacts/*.tar.gz
@@ -64,12 +64,12 @@ jobs:
           global-json-file: global.json
       - name: Publish portable build
         shell: pwsh
-        run: ./scripts/publish.ps1 -Version 0.2.0
+        run: ./scripts/publish.ps1 -Version 0.3.0
       - name: Build MSI
-        run: dotnet build src/UpdateForge.Installer/UpdateForge.Installer.wixproj -c Release -p:Version=0.2.0
+        run: dotnet build src/UpdateForge.Installer/UpdateForge.Installer.wixproj -c Release -p:Version=0.3.0
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: updateforge-0.2.0
+          name: updateforge-0.3.0
           path: |
             artifacts/*.zip
             artifacts/*.sha256
