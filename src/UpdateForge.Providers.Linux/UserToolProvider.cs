@@ -71,7 +71,7 @@ public abstract partial class UserToolProvider : IUpdateProvider, IPackageManage
     internal virtual string SourcesFallback => DisplayName + " uses its default catalog.";
 
     internal ProcessSpec Spec(TimeSpan timeout, Action<string>? onLine, params string[] args) =>
-        new(Exe ?? throw new InvalidOperationException(DisplayName + " is not installed."), args, timeout, onLine, Env);
+        LinuxTools.Launch(Exe ?? throw new InvalidOperationException(DisplayName + " is not installed."), args, timeout, onLine, Env);
 
     public async Task<ProviderAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken)
     {

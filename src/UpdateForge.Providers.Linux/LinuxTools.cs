@@ -53,6 +53,30 @@ internal static class LinuxTools
         foreach (var d in Dirs) yield return d;
     }
 
+    /// <summary>
+    /// A process spec for a user-installed tool. Some tools ship a launcher with no <c>#!</c> line (pnpm's npm package does, on purpose):
+    /// a shell runs it, but <c>execve</c> answers "Exec format error". Those run as <c>/bin/sh &lt;file&gt; args…</c>; the arguments stay a
+    /// typed list, so the shell never interprets them.
+    /// </summary>
+    internal static ProcessSpec Launch(string exe, IReadOnlyList<string> args, TimeSpan timeout, Action<string>? onLine, IReadOnlyDictionary<string, string>? env) =>
+        NeedsShell(exe) ? new ProcessSpec("/bin/sh", [exe, .. args], timeout, onLine, env) : new ProcessSpec(exe, args, timeout, onLine, env);
+
+    /// <summary>True for a readable file that is neither an ELF binary nor a <c>#!</c> script, which the kernel cannot execute directly.</summary>
+    internal static bool NeedsShell(string path)
+    {
+        try
+        {
+            using var f = File.OpenRead(path);
+            Span<byte> head = stackalloc byte[4];
+            var n = f.Read(head);
+            if (n < 2) return false;
+            var shebang = head[0] == (byte)'#' && head[1] == (byte)'!';
+            var elf = n == 4 && head[0] == 0x7F && head[1] == (byte)'E' && head[2] == (byte)'L' && head[3] == (byte)'F';
+            return !shebang && !elf;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }   // missing or unreadable: let the normal start report it
+    }
+
     /// <summary>The stable-locale environment plus extra variables.</summary>
     internal static IReadOnlyDictionary<string, string> WithEnv(params (string Key, string Value)[] extra)
     {
@@ -94,7 +118,7 @@ internal static class LinuxTools
         if (exe is null) return new(null, notInstalled);
         try
         {
-            var r = await runner.RunAsync(new ProcessSpec(exe, [versionArg], TimeSpan.FromSeconds(30), Environment: env ?? CLocale), ct).ConfigureAwait(false);
+            var r = await runner.RunAsync(Launch(exe, [versionArg], TimeSpan.FromSeconds(30), null, env ?? CLocale), ct).ConfigureAwait(false);
             if (r.ExitCode != 0 || r.TimedOut) return new(null, Path.GetFileName(exe) + " did not respond.", true);
             return new(Lines(r.StdOut).FirstOrDefault() ?? "", null);
         }

@@ -434,3 +434,60 @@ public class HomebrewTests
         Assert.Equal(["update"], runner.Calls.Last().Arguments);
     }
 }
+
+public class ShebanglessLauncherTests : IDisposable
+{
+    private readonly string _dir = Path.Combine(Path.GetTempPath(), "uf-launch-" + Guid.NewGuid().ToString("N"));
+
+    public ShebanglessLauncherTests() => Directory.CreateDirectory(_dir);
+
+    public void Dispose()
+    {
+        Directory.Delete(_dir, recursive: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private string Write(string name, byte[] content)
+    {
+        var path = Path.Combine(_dir, name);
+        File.WriteAllBytes(path, content);
+        return path;
+    }
+
+    [Fact]
+    public void A_launcher_without_a_shebang_runs_through_sh()
+    {
+        // pnpm's npm package ships exactly this: an sh script with no #! line, which execve rejects with ENOEXEC.
+        var exe = Write("pnpm", "# comment\necho hi\n"u8.ToArray());
+        var spec = LinuxTools.Launch(exe, ["ls", "-g"], TimeSpan.FromSeconds(1), null, null);
+        Assert.Equal("/bin/sh", spec.FileName);
+        Assert.Equal([exe, "ls", "-g"], spec.Arguments);
+    }
+
+    [Theory]
+    [InlineData("#!/usr/bin/env node\n")]
+    [InlineData("\u007fELF\u0002\u0001")]
+    public void Shebang_scripts_and_binaries_start_directly(string content)
+    {
+        var exe = Write("tool", System.Text.Encoding.Latin1.GetBytes(content));
+        var spec = LinuxTools.Launch(exe, ["--version"], TimeSpan.FromSeconds(1), null, null);
+        Assert.Equal(exe, spec.FileName);
+        Assert.Equal(["--version"], spec.Arguments);
+    }
+
+    [Fact]
+    public void Missing_and_empty_files_start_directly_so_the_normal_error_is_reported()
+    {
+        Assert.False(LinuxTools.NeedsShell(Path.Combine(_dir, "nope")));
+        Assert.False(LinuxTools.NeedsShell(Write("empty", [])));
+    }
+
+    [Fact]
+    public void Arguments_are_never_interpreted_by_the_shell()
+    {
+        var exe = Write("pnpm", "echo hi\n"u8.ToArray());
+        var spec = LinuxTools.Launch(exe, ["add", "-g", "x; rm -rf ~"], TimeSpan.FromSeconds(1), null, null);
+        Assert.DoesNotContain("-c", spec.Arguments);                 // no `sh -c <string>`: arguments are positional parameters
+        Assert.Equal("x; rm -rf ~", spec.Arguments[^1]);
+    }
+}
