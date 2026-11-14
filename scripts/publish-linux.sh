@@ -40,6 +40,9 @@ ln -s /opt/updateforge/updateforge "$pkg/usr/bin/updateforge"
 ln -s /opt/updateforge/updateforge-cli "$pkg/usr/bin/updateforge-cli"
 install -m 644 packaging/linux/updateforge.desktop "$pkg/usr/share/applications/updateforge.desktop"
 install -m 644 src/UpdateForge.Desktop/Assets/UpdateForge-512.png "$pkg/usr/share/icons/hicolor/512x512/apps/updateforge.png"
+# apt elevation: a fixed helper plus its own polkit action (the portable tarball falls back to plain pkexec).
+install -D -m 755 packaging/linux/updateforge-apt-helper "$pkg/usr/libexec/updateforge/updateforge-apt-helper"
+install -D -m 644 packaging/linux/io.github.mikeholp87.updateforge.policy "$pkg/usr/share/polkit-1/actions/io.github.mikeholp87.updateforge.policy"
 cat >"$pkg/DEBIAN/control" <<CONTROL
 Package: updateforge
 Version: $version

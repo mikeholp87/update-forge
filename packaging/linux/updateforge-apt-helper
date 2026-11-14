@@ -1,0 +1,47 @@
+#!/bin/bash
+# UpdateForge apt helper. Started as root by pkexec under the polkit action io.github.mikeholp87.updateforge.apt.
+# It accepts three fixed verbs and one package each, re-validates them, and builds the whole apt-get command itself, so
+# authorizing this program never authorizes arbitrary apt-get options or other programs.
+#   updateforge-apt-helper update
+#   updateforge-apt-helper install name[:arch][=version]
+#   updateforge-apt-helper upgrade name[:arch]=version
+set -euo pipefail
+
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin LC_ALL=C LANG=C DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none
+umask 022
+
+refuse() {
+	echo "updateforge-apt-helper: $1" >&2
+	exit 2
+}
+
+# Same rules as AptProvider: a name can never start with '-' (option) or contain '/' (path or release).
+name='[a-z0-9][a-z0-9+.-]{0,127}'
+arch='(:[a-z0-9][a-z0-9-]{1,15})?'
+version='[0-9][0-9A-Za-z.+~:-]{0,127}'
+
+# Arguments are checked before the root check, so the rules can be tested without root.
+run() {
+	[[ $(id -u) -eq 0 ]] || refuse "must run as root (through pkexec)"
+	exec "$@"
+}
+
+[[ $# -ge 1 ]] || refuse "no command given"
+
+case "$1" in
+update)
+	[[ $# -eq 1 ]] || refuse "update takes no arguments"
+	run /usr/bin/apt-get update
+	;;
+install)
+	[[ $# -eq 2 && $2 =~ ^${name}${arch}(=${version})?$ ]] || refuse "invalid package"
+	run /usr/bin/apt-get install -y -o Dpkg::Options::=--force-confold -- "$2"
+	;;
+upgrade)
+	[[ $# -eq 2 && $2 =~ ^${name}${arch}=${version}$ ]] || refuse "invalid package"
+	run /usr/bin/apt-get install --only-upgrade -y -o Dpkg::Options::=--force-confold -- "$2"
+	;;
+*)
+	refuse "unknown command"
+	;;
+esac

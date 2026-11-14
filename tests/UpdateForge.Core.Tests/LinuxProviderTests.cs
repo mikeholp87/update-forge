@@ -124,6 +124,22 @@ public class AptTests
         Assert.Contains("DEBIAN_FRONTEND=noninteractive", call.Arguments);
     }
 
+    [Fact]
+    public async Task Update_as_user_prefers_the_UpdateForge_helper_with_fixed_verbs()
+    {
+        var runner = Runner(_ => Ok("done"));
+        AptProvider WithHelper() => new(runner, NullLogger<AptProvider>.Instance, "/fake/bin", () => false, () => false, "/fake/libexec/updateforge-apt-helper");
+        var app = (await WithHelper().DiscoverAsync(CancellationToken.None)).Single(a => a.Name == "vim");
+
+        await WithHelper().UpdateAsync(new UpdateRequest(app), new Progress<UpdateProgress>(), CancellationToken.None);
+        var call = runner.Calls.Last();
+        Assert.Equal(Path.Combine("/fake/bin", "pkexec"), call.FileName);
+        Assert.Equal(["/fake/libexec/updateforge-apt-helper", "upgrade", "vim:amd64=2:9.1.2-1"], call.Arguments);
+
+        await WithHelper().InstallAsync(new InstallRequest("htop", null), new Progress<UpdateProgress>(), CancellationToken.None);
+        Assert.Equal(["/fake/libexec/updateforge-apt-helper", "install", "htop"], runner.Calls.Last().Arguments);
+    }
+
     [Theory]
     [InlineData("vim; rm -rf /")]
     [InlineData("-oAPT::Foo")]
