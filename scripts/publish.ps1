@@ -20,8 +20,9 @@ if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 New-Item -ItemType Directory -Force (Split-Path $portable) | Out-Null
 
 # Both executables go to the same folder so the scheduled task can find updateforge-cli.exe next to UpdateForge.exe.
+# The CLI also targets Linux (net10.0), so the Windows target is chosen explicitly.
 foreach ($proj in 'src/UpdateForge.Desktop', 'src/UpdateForge.Cli') {
-    dotnet publish $proj -c $Configuration -r $Runtime --self-contained true -o $out "-p:Version=$Version" "-p:DebugType=none" "-p:DebugSymbols=false"
+    dotnet publish $proj -c $Configuration -f net10.0-windows10.0.19041.0 -r $Runtime --self-contained true -o $out "-p:Version=$Version" "-p:DebugType=none" "-p:DebugSymbols=false"
     if ($LASTEXITCODE -ne 0) { throw "publish failed for $proj" }
 }
 

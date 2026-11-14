@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="UpdateForge.Desktop.Views.PackageDetailsWindow"
+        Title="Package details" Width="680" Height="620" MinWidth="460" MinHeight="380"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0" Padding="24,16">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Row.Name}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" TextWrapping="Wrap">
+                    <Run Text="{Binding Row.PackageId}" /><Run Text=" · " /><Run Text="{Binding Row.Version}" /><Run Text=" · " /><Run Text="{Binding Row.Manager}" /><Run Text=" · " /><Run Text="{Binding Row.Source}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Row.Status}" FontWeight="SemiBold" IsVisible="{Binding Row.Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <ProgressBar Height="3" IsIndeterminate="True" Margin="0,16,0,0" IsVisible="{Binding IsLoading}" />
+                <TextBlock Margin="0,12,0,0" Text="{Binding Message}" TextWrapping="Wrap" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <SelectableTextBlock Margin="0,16,0,0" Text="{Binding Description}" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="hyperlink" Background="Transparent" Foreground="DodgerBlue" Padding="0,4" Command="{Binding OpenHomepageCommand}"
+                        Content="{Binding Homepage.AbsoluteUri}" ToolTip.Tip="Open the package homepage in your browser" IsVisible="{Binding HasHomepage}" />
+                <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Fields}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,0,0,8" ColumnDefinitions="170,*">
+                                <TextBlock Classes="muted" Text="{Binding Name}" TextWrapping="Wrap" Margin="0,0,12,0" />
+                                <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="muted" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="12" Text="Details come from the package manager's catalog and are not reviewed by UpdateForge." />
+            </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="1" Padding="24,12" Background="{DynamicResource SystemControlBackgroundListLowBrush}">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Classes="accent" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding ShowInstall}" />
+                <Button x:Name="CloseButton" Content="Close" IsCancel="True" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

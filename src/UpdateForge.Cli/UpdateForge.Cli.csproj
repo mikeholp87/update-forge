@@ -1,18 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- net10.0 = Linux (and any other non-Windows OS); the -windows target adds WinGet/Scoop/Chocolatey, the registry and Task Scheduler. -->
+    <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
     <RootNamespace>UpdateForge.Cli</RootNamespace>
     <AssemblyName>updateforge-cli</AssemblyName>
-    <ApplicationIcon>..\UpdateForge.Desktop\Assets\UpdateForge.ico</ApplicationIcon>
+    <ApplicationIcon Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">..\UpdateForge.Desktop\Assets\UpdateForge.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\UpdateForge.Infrastructure\UpdateForge.Infrastructure.csproj" />
+    <ProjectReference Include="..\UpdateForge.Background\UpdateForge.Background.csproj" />
+    <ProjectReference Include="..\UpdateForge.Providers.Npm\UpdateForge.Providers.Npm.csproj" />
+    <ProjectReference Include="..\UpdateForge.Providers.Linux\UpdateForge.Providers.Linux.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <ProjectReference Include="..\UpdateForge.Providers.WinGet\UpdateForge.Providers.WinGet.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Windows\UpdateForge.Providers.Windows.csproj" />
-    <ProjectReference Include="..\UpdateForge.Background\UpdateForge.Background.csproj" />
+    <ProjectReference Include="..\UpdateForge.Background.Windows\UpdateForge.Background.Windows.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Scoop\UpdateForge.Providers.Scoop.csproj" />
     <ProjectReference Include="..\UpdateForge.Providers.Chocolatey\UpdateForge.Providers.Chocolatey.csproj" />
-    <ProjectReference Include="..\UpdateForge.Providers.Npm\UpdateForge.Providers.Npm.csproj" />
   </ItemGroup>
 </Project>

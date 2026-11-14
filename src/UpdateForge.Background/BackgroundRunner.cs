@@ -2,7 +2,6 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using UpdateForge.Application;
 using UpdateForge.Core.Updates;
-using Windows.Networking.Connectivity;
 
 namespace UpdateForge.Background;
 
@@ -15,6 +14,7 @@ public sealed class BackgroundRunner(
     IExclusionStore exclusions,
     InventoryService inventory,
     UpdateEngine engine,
+    INetworkCostProbe network,
     ILogger<BackgroundRunner> log)
 {
     public static string SummaryPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UpdateForge", "last-background-run.json");
@@ -23,7 +23,7 @@ public sealed class BackgroundRunner(
     {
         var settings = await settingsStore.LoadAsync(ct).ConfigureAwait(false);
 
-        if (!settings.RunOnMeteredConnection && IsMetered())
+        if (!settings.RunOnMeteredConnection && await network.IsMeteredAsync(ct).ConfigureAwait(false))
             return await Done(new BackgroundRunSummary(DateTimeOffset.UtcNow, 0, 0, 0, 0, 0, 0, "Metered connection"));
 
         var scan = await inventory.ScanAsync(settings, null, ct).ConfigureAwait(false);
@@ -68,15 +68,5 @@ public sealed class BackgroundRunner(
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { log.LogWarning(ex, "Could not write background summary"); }
         return s;
-    }
-
-    private static bool IsMetered()
-    {
-        try
-        {
-            var cost = NetworkInformation.GetInternetConnectionProfile()?.GetConnectionCost();
-            return cost?.NetworkCostType is NetworkCostType.Fixed or NetworkCostType.Variable;
-        }
-        catch (Exception) { return false; } // cannot determine: do not block
     }
 }

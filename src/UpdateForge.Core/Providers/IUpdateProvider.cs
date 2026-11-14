@@ -1,4 +1,5 @@
 using UpdateForge.Core.Models;
+using UpdateForge.Core.Versioning;
 
 namespace UpdateForge.Core.Providers;
 
@@ -32,4 +33,7 @@ public interface IUpdateProvider
     /// </summary>
     Task<string?> GetInstalledVersionAsync(InstalledApplication application, CancellationToken cancellationToken) =>
         Task.FromResult<string?>(null);
+
+    /// <summary>Orders two versions of this manager's packages (installed relative to candidate). Managers with their own scheme (apt) override it.</summary>
+    VersionOrder CompareVersions(string? installed, string? candidate) => AppVersion.Compare(installed, candidate);
 }

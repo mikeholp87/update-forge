@@ -74,6 +74,7 @@ public partial class App : System.Windows.Application
             .AddSingleton<IUpdateProvider, ChocolateyProvider>()
             .AddSingleton<IUpdateProvider, NpmProvider>()
             .AddSingleton<IScheduleService, ScheduledTaskService>()
+            .AddSingleton<INetworkCostProbe, WindowsNetworkCostProbe>()
             .AddSingleton<HistoryViewModel>()
             .AddSingleton<SettingsViewModel>()
             .AddSingleton<PackageManagersViewModel>()

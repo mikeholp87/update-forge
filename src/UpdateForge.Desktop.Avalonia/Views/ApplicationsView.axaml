@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:UpdateForge.Desktop.ViewModels"
+             x:Class="UpdateForge.Desktop.Views.ApplicationsView">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <TextBlock Grid.Row="0" Classes="title" Text="Installed applications" />
+
+        <Grid Grid.Row="1" Margin="0,12,0,12" ColumnDefinitions="*,200,Auto,Auto">
+            <TextBox Grid.Column="0" Watermark="Search applications" Text="{Binding Search, Mode=TwoWay}" Margin="0,0,8,0" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" HorizontalAlignment="Stretch" Margin="0,0,8,0" />
+            <Button Grid.Column="2" Content="Export list to CSV…" Command="{Binding ExportCsvCommand}" IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" />
+            <Button Grid.Column="3" Classes="accent" Content="Update checked" Command="{Binding UpdateCheckedCommand}" IsEnabled="{Binding IsIdle}" />
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,300">
+            <DataGrid Grid.Column="0" ItemsSource="{Binding FilteredApps}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutoGenerateColumns="False"
+                      CanUserSortColumns="True" GridLinesVisibility="None" SelectionMode="Single" Margin="0,0,12,0">
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Update" Command="{Binding UpdateSelectedCommand}" />
+                        <MenuItem Header="Exclude / restore" Command="{Binding ToggleExcludeCommand}" />
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="" Binding="{Binding IsChecked}" Width="40" />
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="2*" />
+                    <DataGridTextColumn Header="Installed" Binding="{Binding Installed}" IsReadOnly="True" Width="*" />
+                    <DataGridTextColumn Header="Available" Binding="{Binding Available}" IsReadOnly="True" Width="*" />
+                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" IsReadOnly="True" Width="*" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" IsReadOnly="True" Width="*" />
+                    <DataGridTemplateColumn Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Update" Classes="accent" Padding="12,3" IsVisible="{Binding CanUpdate}"
+                                        Command="{Binding $parent[UserControl].DataContext.UpdateOneCommand}" CommandParameter="{Binding}"
+                                        IsEnabled="{Binding $parent[UserControl].DataContext.IsIdle}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Column="1" Classes="card" VerticalAlignment="Top" DataContext="{Binding Selected}" IsVisible="{Binding Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="heading" Text="{Binding Name}" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted" Text="{Binding Publisher}" Margin="0,0,0,12" />
+                    <TextBlock Text="Details" FontWeight="SemiBold" />
+                    <TextBlock TextWrapping="Wrap"><Run Text="Installed: " /><Run Text="{Binding Installed}" /></TextBlock>
+                    <TextBlock TextWrapping="Wrap"><Run Text="Available: " /><Run Text="{Binding Available}" /></TextBlock>
+                    <TextBlock TextWrapping="Wrap"><Run Text="Source: " /><Run Text="{Binding Source}" /></TextBlock>
+                    <TextBlock TextWrapping="Wrap"><Run Text="Scope: " /><Run Text="{Binding Scope}" /></TextBlock>
+                    <TextBlock TextWrapping="Wrap"><Run Text="Status: " /><Run Text="{Binding StatusText}" /></TextBlock>
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,8,0,0" Text="{Binding Note}" />
+                    <StackPanel Spacing="6" Margin="0,16,0,0">
+                        <Button HorizontalAlignment="Stretch" Classes="accent" Content="Update this application" IsEnabled="{Binding CanUpdate}"
+                                Command="{Binding $parent[UserControl].DataContext.UpdateSelectedCommand}" />
+                        <Button HorizontalAlignment="Stretch" Content="Exclude / restore"
+                                Command="{Binding $parent[UserControl].DataContext.ToggleExcludeCommand}" />
+                        <Button HorizontalAlignment="Stretch" Content="Skip this version"
+                                Command="{Binding $parent[UserControl].DataContext.SkipVersionCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

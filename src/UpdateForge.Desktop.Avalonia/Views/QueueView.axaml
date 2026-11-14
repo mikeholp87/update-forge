@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="UpdateForge.Desktop.Views.QueueView">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <TextBlock Grid.Row="0" Classes="title" Text="Update queue" />
+        <StackPanel Grid.Row="1" Margin="0,8,0,12" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Cancel pending" Command="{Binding CancelPendingCommand}" />
+                <Button Content="Retry failed" Command="{Binding RetryFailedCommand}" />
+            </StackPanel>
+            <ProgressBar Maximum="100" Value="{Binding OverallProgress}" Height="6" Margin="0,6,0,0" />
+            <TextBlock Classes="muted" Text="{Binding Status}" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" FontSize="12" Text="Running installers are never force-closed. 'Cancel pending' stops updates that have not started yet." />
+        </StackPanel>
+        <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Queue}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="card" Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="2*,140,3*">
+                                <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="{Binding State}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="4">
+                                    <ProgressBar Maximum="1" Value="{Binding Fraction}" IsIndeterminate="{Binding IsIndeterminate}" Height="4" />
+                                    <TextBlock Classes="muted" Text="{Binding Message}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

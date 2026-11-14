@@ -8,11 +8,16 @@ using UpdateForge.Core.Models;
 using UpdateForge.Core.Providers;
 using UpdateForge.Core.Updates;
 using UpdateForge.Infrastructure;
+using UpdateForge.Core.Processes;
+using UpdateForge.Providers.Npm;
+#if WINDOWS
 using UpdateForge.Providers.Windows;
 using UpdateForge.Providers.Chocolatey;
-using UpdateForge.Providers.Npm;
 using UpdateForge.Providers.Scoop;
 using UpdateForge.Providers.WinGet;
+#else
+using UpdateForge.Providers.Linux;
+#endif
 
 namespace UpdateForge.Cli;
 
@@ -45,13 +50,22 @@ internal static class Program
 
         var services = new ServiceCollection()
             .AddUpdateForgeCore()
+            .AddSingleton<IUpdateProvider, NpmProvider>()
+#if WINDOWS
             .AddSingleton<IUpdateProvider, RegistryInventoryProvider>()
             .AddSingleton<IUpdateProvider, WinGetProvider>()
             .AddSingleton<IUpdateProvider, MicrosoftStoreProvider>()
             .AddSingleton<IUpdateProvider, ScoopProvider>()
             .AddSingleton<IUpdateProvider, ChocolateyProvider>()
-            .AddSingleton<IUpdateProvider, NpmProvider>()
             .AddSingleton<IScheduleService, ScheduledTaskService>()
+            .AddSingleton<INetworkCostProbe, WindowsNetworkCostProbe>()
+#else
+            .AddSingleton<IUpdateProvider, AptProvider>()
+            .AddSingleton<IUpdateProvider, FlatpakProvider>()
+            .AddSingleton<IUpdateProvider, SnapProvider>()
+            .AddSingleton<IScheduleService, SystemdScheduleService>()
+            .AddSingleton<INetworkCostProbe, NmcliNetworkCostProbe>()
+#endif
             .AddSingleton<BackgroundRunner>()
             .BuildServiceProvider();
 
@@ -79,6 +93,12 @@ internal static class Program
         catch (IOException e) { return Fail(e.Message, ExitCodes.Error); }
     }
 
+#if WINDOWS
+    private static string DefaultExecutablePath => ScheduledTaskService.DefaultExecutablePath;
+#else
+    private static string DefaultExecutablePath => SystemdScheduleService.DefaultExecutablePath;
+#endif
+
     private static int Fail(string message, int code) { Console.Error.WriteLine(message); return code; }
 
     private static void PrintHelp() => Console.WriteLine("""
@@ -91,7 +111,7 @@ internal static class Program
           updateforge update --id <id>      Update one application by its UpdateForge id or package id
           updateforge export [--updates] [--format csv|json] [--scan] [<file>]
                                             Export installed apps (or only those with updates); CSV by default, stdout if no file
-          updateforge bundle export <file>  Save your WinGet packages to a bundle file
+          updateforge bundle export <file>  Save your WinGet packages to a bundle file (Windows only)
           updateforge bundle import <file> [--install] [--exact-versions]
                                             Show what a bundle would install; --install installs the missing packages
           updateforge history               Show update history
@@ -196,12 +216,12 @@ internal static class Program
                 return ExitCodes.Ok;
             case "apply":
                 var settings = await sp.GetRequiredService<ISettingsStore>().LoadAsync(ct);
-                svc.Apply(settings, ScheduledTaskService.DefaultExecutablePath);
-                Console.WriteLine("Scheduled task registered for the current user (not elevated).");
+                svc.Apply(settings, DefaultExecutablePath);
+                Console.WriteLine(OperatingSystem.IsWindows() ? "Scheduled task registered for the current user (not elevated)." : "systemd user timer registered for the current user (no root).");
                 return ExitCodes.Ok;
             case "remove":
                 svc.Remove();
-                Console.WriteLine("Scheduled task removed.");
+                Console.WriteLine(OperatingSystem.IsWindows() ? "Scheduled task removed." : "systemd user timer removed.");
                 return ExitCodes.Ok;
             default:
                 return Fail("Usage: updateforge schedule [status|apply|remove]", ExitCodes.Usage);
@@ -290,7 +310,8 @@ internal static class Program
 
     private static async Task<int> ExportDiagnostics(ServiceProvider sp, string? path, CancellationToken ct)
     {
-        path ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"updateforge-diagnostics-{DateTime.Now:yyyyMMdd-HHmm}.zip");
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        path ??= Path.Combine(Directory.Exists(desktop) ? desktop : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), $"updateforge-diagnostics-{DateTime.Now:yyyyMMdd-HHmm}.zip");
         await sp.GetRequiredService<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>().ExportAsync(path, ServiceCollectionExtensions.LogDirectory, ct);
         Console.WriteLine($"Redacted diagnostics written to {path}. Review it before attaching it to a GitHub issue.");
         return ExitCodes.Ok;
@@ -325,7 +346,7 @@ internal static class Program
     {
         var checks = new List<(string Name, bool Ok, string Detail)>
         {
-            ("OS", Environment.OSVersion.Version.Build >= 19041, Environment.OSVersion.VersionString),
+            ("OS", !OperatingSystem.IsWindows() || Environment.OSVersion.Version.Build >= 19041, Environment.OSVersion.VersionString),
             ("Database", File.Exists(UpdateForge.Infrastructure.Persistence.Database.DefaultPath), UpdateForge.Infrastructure.Persistence.Database.DefaultPath),
             ("Log directory", Directory.Exists(ServiceCollectionExtensions.LogDirectory), ServiceCollectionExtensions.LogDirectory),
         };
