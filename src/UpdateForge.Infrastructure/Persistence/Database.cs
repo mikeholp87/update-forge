@@ -10,7 +10,7 @@ public sealed class Database
     public Database(string path)
     {
         var dir = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        if (!string.IsNullOrEmpty(dir)) UpdateForge.Core.Storage.PrivateStorage.CreateDirectory(dir);
         _connectionString = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadWriteCreate, Cache = SqliteCacheMode.Shared, Pooling = true }.ToString();
     }
 

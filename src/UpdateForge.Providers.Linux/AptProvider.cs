@@ -91,7 +91,9 @@ public static partial class AptParsing
 /// apt (Debian, Ubuntu and derivatives). The inventory is the packages you installed on purpose (<c>apt-mark showmanual</c>) plus
 /// anything with a pending upgrade, so the list is not flooded with hundreds of libraries. Upgrades install the exact version that was
 /// checked. Installing needs root: when UpdateForge is not root the command runs through <c>pkexec</c> (polkit shows the
-/// password prompt), and unattended runs leave such updates pending. Held packages are reported as pinned and never touched.
+/// password prompt), and unattended runs leave such updates pending. The .deb installs a helper with its own polkit action, so the prompt
+/// names UpdateForge and authorizes only "update, or install/upgrade one validated package"; without it (portable tarball) pkexec runs
+/// apt-get through the generic "run a program as another user" action. Held packages are reported as pinned and never touched.
 /// </summary>
 public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPackageSearchProvider
 {
@@ -101,9 +103,16 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
     private readonly string? _binDirectory;
     private readonly Func<bool> _isRoot;
     private readonly Func<bool> _rebootRequired;
+    private readonly string? _helper;
 
-    public AptProvider(IProcessRunner runner, ILogger<AptProvider> log, string? binDirectory = null, Func<bool>? isRoot = null, Func<bool>? rebootRequired = null)
+    /// <summary>Installed by the .deb together with the polkit action <c>io.github.mikeholp87.updateforge.apt</c>.</summary>
+    public const string HelperPath = "/usr/libexec/updateforge/updateforge-apt-helper";
+
+    /// <param name="aptHelper">Test override for the helper; with a <paramref name="binDirectory"/> and no override, no helper is used.</param>
+    public AptProvider(IProcessRunner runner, ILogger<AptProvider> log, string? binDirectory = null, Func<bool>? isRoot = null, Func<bool>? rebootRequired = null,
+        string? aptHelper = null)
     {
+        _helper = aptHelper ?? (binDirectory is null && File.Exists(HelperPath) ? HelperPath : null);
         _runner = runner;
         _log = log;
         _binDirectory = binDirectory;
@@ -141,14 +150,18 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
     private ProcessSpec Spec(string tool, TimeSpan timeout, Action<string>? onLine, params string[] args) =>
         new(LinuxTools.Find(tool, _binDirectory) ?? throw new InvalidOperationException(tool + " is not installed."), args, timeout, onLine, LinuxTools.CLocale);
 
-    /// <summary>Runs apt-get as root: directly when already root, otherwise through pkexec. Returns null when neither is possible.</summary>
-    private ProcessSpec? Elevated(TimeSpan timeout, Action<string>? onLine, params string[] aptArgs)
+    /// <summary>
+    /// Runs apt-get as root: directly when already root, otherwise through pkexec, preferring the UpdateForge helper (which rebuilds the
+    /// same command from <paramref name="helperArgs"/>). Returns null when neither is possible.
+    /// </summary>
+    private ProcessSpec? Elevated(TimeSpan timeout, Action<string>? onLine, string[] helperArgs, string[] aptArgs)
     {
         var aptGet = AptGet;
         if (aptGet is null) return null;
         var env = new Dictionary<string, string>(LinuxTools.CLocale) { ["DEBIAN_FRONTEND"] = "noninteractive", ["APT_LISTCHANGES_FRONTEND"] = "none" };
         if (_isRoot()) return new ProcessSpec(aptGet, aptArgs, timeout, onLine, env);
         var pkexec = LinuxTools.Find("pkexec", _binDirectory);
+        if (pkexec is not null && _helper is not null) return new ProcessSpec(pkexec, [_helper, .. helperArgs], timeout, onLine);
         var envTool = LinuxTools.Find("env", _binDirectory);
         if (pkexec is null || envTool is null) return null;
         // pkexec starts the program with a clean environment, so the settings travel as arguments to env.
@@ -164,7 +177,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
 
     public async Task<string> RefreshSourcesAsync(CancellationToken cancellationToken)
     {
-        var spec = Elevated(TimeSpan.FromMinutes(5), null, "update") ?? throw new InvalidOperationException("Refreshing apt needs root; install polkit (pkexec) or run UpdateForge as root.");
+        var spec = Elevated(TimeSpan.FromMinutes(5), null, ["update"], ["update"]) ?? throw new InvalidOperationException("Refreshing apt needs root; install polkit (pkexec) or run UpdateForge as root.");
         var r = await _runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
         if (r.ExitCode is 126 or 127 && r.StdOut.Length == 0) throw new InvalidOperationException("Authorization was declined.");
         return PackageManagerOutput.RequireSuccess(r, "Refresh apt sources");
@@ -233,7 +246,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
         // Installing the exact version that was checked (not "latest") keeps the result identical to what the user was shown.
         var target = $"{app.PackageId}{(app.Architecture is null ? "" : ":" + app.Architecture)}={version}";
         _log.LogInformation("Upgrading apt package {Package}", target);
-        return await RunInstallAsync(["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", target], "Upgraded with apt.", progress, cancellationToken).ConfigureAwait(false);
+        return await RunInstallAsync(["upgrade", target], ["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", "--", target], "Upgraded with apt.", progress, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
@@ -243,13 +256,13 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
         if (request.Version is { } v && !VersionPattern().IsMatch(v))
             return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "apt version failed validation; refusing to run.");
         _log.LogInformation("Installing apt package {Package} (correlation {Correlation})", request.PackageId, request.CorrelationId);
-        return await RunInstallAsync(["install", "-y", "-o", "Dpkg::Options::=--force-confold", request.Version is null ? request.PackageId : $"{request.PackageId}={request.Version}"],
-            "Installed.", progress, cancellationToken).ConfigureAwait(false);
+        var target = request.Version is null ? request.PackageId : $"{request.PackageId}={request.Version}";
+        return await RunInstallAsync(["install", target], ["install", "-y", "-o", "Dpkg::Options::=--force-confold", "--", target], "Installed.", progress, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<UpdateResult> RunInstallAsync(string[] aptArgs, string successMessage, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
+    private async Task<UpdateResult> RunInstallAsync(string[] helperArgs, string[] aptArgs, string successMessage, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
     {
-        var spec = Elevated(TimeSpan.FromMinutes(30), l => { if (l.Trim().Length > 3) progress.Report(new UpdateProgress(l.Trim())); }, aptArgs);
+        var spec = Elevated(TimeSpan.FromMinutes(30), l => { if (l.Trim().Length > 3) progress.Report(new UpdateProgress(l.Trim())); }, helperArgs, aptArgs);
         if (spec is null)
             return new UpdateResult { Outcome = UpdateOutcome.ManualActionRequired, Error = ErrorCategory.ElevationRequired,
                 Message = "apt needs root. Install polkit (pkexec) or run: sudo apt-get " + string.Join(' ', aptArgs[..2]) + " …" };

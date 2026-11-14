@@ -27,6 +27,8 @@ for proj in src/UpdateForge.Desktop.Avalonia src/UpdateForge.Cli; do
 		"-p:Version=$version" -p:DebugType=none -p:DebugSymbols=false
 done
 cp LICENSE "$out/"
+# The build inherits the caller's umask (often 0002, so group-writable); ship 755 dirs/executables and 644 files.
+chmod -R go-w,a+rX "$out"
 
 # Portable tarball (unpack anywhere, run ./updateforge).
 tar -C "$out" -czf "artifacts/UpdateForge-$version-$rid-portable.tar.gz" .
@@ -38,6 +40,9 @@ ln -s /opt/updateforge/updateforge "$pkg/usr/bin/updateforge"
 ln -s /opt/updateforge/updateforge-cli "$pkg/usr/bin/updateforge-cli"
 install -m 644 packaging/linux/updateforge.desktop "$pkg/usr/share/applications/updateforge.desktop"
 install -m 644 src/UpdateForge.Desktop/Assets/UpdateForge-512.png "$pkg/usr/share/icons/hicolor/512x512/apps/updateforge.png"
+# apt elevation: a fixed helper plus its own polkit action (the portable tarball falls back to plain pkexec).
+install -D -m 755 packaging/linux/updateforge-apt-helper "$pkg/usr/libexec/updateforge/updateforge-apt-helper"
+install -D -m 644 packaging/linux/io.github.mikeholp87.updateforge.policy "$pkg/usr/share/polkit-1/actions/io.github.mikeholp87.updateforge.policy"
 cat >"$pkg/DEBIAN/control" <<CONTROL
 Package: updateforge
 Version: $version
@@ -53,6 +58,7 @@ Description: Software updater for apt, Flatpak, Snap and npm
  newer version, and installs updates through the system's package managers,
  on demand or on a schedule (systemd user timer). No telemetry, no accounts.
 CONTROL
+chmod -R go-w,a+rX "$pkg"
 dpkg-deb --root-owner-group --build "$pkg" "artifacts/updateforge_${version}_${arch}.deb" >/dev/null
 
 (cd artifacts && sha256sum "UpdateForge-$version-$rid-portable.tar.gz" "updateforge_${version}_${arch}.deb" >"SHA256SUMS-linux")

@@ -27,6 +27,9 @@ public sealed class ProcessRunner : IProcessRunner
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
+            // Package managers read bare names as local paths when a matching file exists (npm x.tgz, pipx ./name), so they never run
+            // in whatever folder the app was started from.
+            WorkingDirectory = OperatingSystem.IsWindows() ? "" : "/",
         };
         foreach (var a in spec.Arguments) psi.ArgumentList.Add(a);
         if (spec.Environment is not null) foreach (var (k, v) in spec.Environment) psi.Environment[k] = v;

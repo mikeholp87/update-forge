@@ -61,7 +61,7 @@ public sealed class BackgroundRunner(
         log.LogInformation("Background run finished: {Summary}", s);
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(SummaryPath)!);
+            UpdateForge.Core.Storage.PrivateStorage.CreateDirectory(Path.GetDirectoryName(SummaryPath)!);
             var tmp = SummaryPath + ".tmp";
             await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(s)).ConfigureAwait(false);
             File.Move(tmp, SummaryPath, overwrite: true);

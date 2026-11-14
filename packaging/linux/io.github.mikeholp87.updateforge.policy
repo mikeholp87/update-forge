@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>UpdateForge</vendor>
+  <vendor_url>https://mikeholp87.github.io/update-forge/</vendor_url>
+  <icon_name>system-software-update</icon_name>
+
+  <!-- Only the helper below may run under this action. It accepts update/install/upgrade of one validated package. -->
+  <action id="io.github.mikeholp87.updateforge.apt">
+    <description>Install or update software packages with UpdateForge</description>
+    <message>Authentication is required for UpdateForge to install or update software packages.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/updateforge/updateforge-apt-helper</annotate>
+  </action>
+</policyconfig>
