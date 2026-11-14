@@ -33,6 +33,10 @@ public sealed record AppSettings
     public bool NotifyCompleted { get; init; } = true;
     public bool NotifyFailed { get; init; } = true;
     public bool NotifyRestart { get; init; } = true;
+    /// <summary>Learn interests from what gets installed so recommendations improve. Off keeps recommendations to what is installed right now.</summary>
+    public bool LearnInterests { get; init; } = true;
+    /// <summary>Recommendation keys the user chose not to see again.</summary>
+    public IReadOnlyList<string> DismissedRecommendations { get; init; } = [];
 
     /// <summary>Returns a copy with out-of-range or unknown values replaced by safe defaults.</summary>
     public AppSettings Validated()
@@ -49,6 +53,7 @@ public sealed record AppSettings
             MaxParallelUpdates = Math.Clamp(MaxParallelUpdates, 1, 4),
             Theme = Theme is "Light" or "Dark" ? Theme : "System",
             EnabledProviders = [.. EnabledProviders.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase)],
+            DismissedRecommendations = [.. (DismissedRecommendations ?? []).Where(k => !string.IsNullOrWhiteSpace(k) && k.Length <= 80).Distinct(StringComparer.Ordinal).Take(200)],
         };
     }
 }

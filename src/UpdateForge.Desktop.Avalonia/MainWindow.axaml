@@ -18,6 +18,7 @@
                     <Button Classes="nav" Classes.active="{Binding IsDashboardPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Dashboard}" Content="Dashboard" />
                     <Button Classes="nav" Classes.active="{Binding IsApplicationsPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Applications}" Content="Installed" />
                     <Button Classes="nav" Classes.active="{Binding IsDiscoverPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Discover}" Content="Discover" />
+                    <Button Classes="nav" Classes.active="{Binding IsRecommendationsPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Recommendations}" Content="Recommended" />
                     <Button Classes="nav" Classes.active="{Binding IsQueuePage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Queue}" Content="Queue" Margin="0,16,0,0" />
                     <Button Classes="nav" Classes.active="{Binding IsHistoryPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.History}" Content="History" />
                     <Button Classes="nav" Classes.active="{Binding IsManagersPage}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.PackageManagers}" Content="Package managers" Margin="0,16,0,0" />
@@ -35,6 +36,7 @@
             <views:DashboardView IsVisible="{Binding IsDashboardPage}" />
             <views:ApplicationsView IsVisible="{Binding IsApplicationsPage}" />
             <views:DiscoverView DataContext="{Binding DiscoverPage}" IsVisible="{Binding $parent[Window].DataContext.IsDiscoverPage}" />
+            <views:RecommendationsView DataContext="{Binding RecommendationsPage}" IsVisible="{Binding $parent[Window].DataContext.IsRecommendationsPage}" />
             <views:QueueView IsVisible="{Binding IsQueuePage}" />
             <views:HistoryView DataContext="{Binding HistoryPage}" IsVisible="{Binding $parent[Window].DataContext.IsHistoryPage}" />
             <views:PackageManagersView DataContext="{Binding PackageManagersPage}" IsVisible="{Binding $parent[Window].DataContext.IsManagersPage}" />

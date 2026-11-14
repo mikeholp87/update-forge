@@ -18,7 +18,7 @@ public sealed record ProviderSummary(string Id, string Name, int Count, int Pend
     public bool HasPending => Pending > 0;
 }
 
-public enum PageId { Dashboard, Applications, Queue, History, PackageManagers, Settings, Discover }
+public enum PageId { Dashboard, Applications, Queue, History, PackageManagers, Settings, Discover, Recommendations }
 
 public sealed partial class ShellViewModel : ObservableObject
 {
@@ -37,7 +37,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ShellViewModel(InventoryService inventory, UpdateEngine engine, ISettingsStore settingsStore, IExclusionStore exclusions,
         IInventoryStore inventoryStore, IScanHistoryStore scanHistory, IHistoryStore history, HistoryViewModel historyVm, SettingsViewModel settingsVm,
-        IDialogService dialogs, ILogger<ShellViewModel> log, PackageManagersViewModel managersVm, DiscoverViewModel discoverVm)
+        IDialogService dialogs, ILogger<ShellViewModel> log, PackageManagersViewModel managersVm, DiscoverViewModel discoverVm, RecommendationsViewModel recommendationsVm)
     {
         _dialogs = dialogs;
         _inventory = inventory; _engine = engine; _settingsStore = settingsStore; _exclusions = exclusions;
@@ -46,6 +46,10 @@ public sealed partial class ShellViewModel : ObservableObject
         SettingsPage = settingsVm;
         PackageManagersPage = managersVm;
         DiscoverPage = discoverVm;
+        RecommendationsPage = recommendationsVm;
+        recommendationsVm.GetInventory = () => [.. Apps.Select(r => r.App)];
+        recommendationsVm.PackageInstalled += () => _ = ScanCoreAsync(notify: false);
+        recommendationsVm.Notify += (title, text) => { if (_settings.NotifyCompleted) Notify?.Invoke(title, text); };
         discoverVm.IsAlreadyInstalled = p => Apps.Any(r =>
             string.Equals(r.App.PackageId, p.PackageId, StringComparison.OrdinalIgnoreCase) && string.Equals(r.App.ProviderId, p.ProviderId, StringComparison.OrdinalIgnoreCase));
         discoverVm.PackageInstalled += () => _ = ScanCoreAsync(notify: false);
@@ -57,6 +61,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public SettingsViewModel SettingsPage { get; }
     public PackageManagersViewModel PackageManagersPage { get; }
     public DiscoverViewModel DiscoverPage { get; }
+    public RecommendationsViewModel RecommendationsPage { get; }
 
     public ObservableCollection<AppRowViewModel> Apps { get; } = [];
     public ObservableCollection<AppRowViewModel> PendingUpdates { get; } = [];
@@ -133,7 +138,7 @@ public sealed partial class ShellViewModel : ObservableObject
     partial void OnSearchChanged(string value) => RefreshFilter();
     partial void OnCurrentPageChanged(PageId value)
     {
-        foreach (var name in (string[])[nameof(IsDashboardPage), nameof(IsApplicationsPage), nameof(IsQueuePage), nameof(IsHistoryPage), nameof(IsManagersPage), nameof(IsSettingsPage), nameof(IsDiscoverPage)])
+        foreach (var name in (string[])[nameof(IsDashboardPage), nameof(IsApplicationsPage), nameof(IsQueuePage), nameof(IsHistoryPage), nameof(IsManagersPage), nameof(IsSettingsPage), nameof(IsDiscoverPage), nameof(IsRecommendationsPage)])
             OnPropertyChanged(name);
     }
 
@@ -144,6 +149,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public bool IsManagersPage => CurrentPage == PageId.PackageManagers;
     public bool IsSettingsPage => CurrentPage == PageId.Settings;
     public bool IsDiscoverPage => CurrentPage == PageId.Discover;
+    public bool IsRecommendationsPage => CurrentPage == PageId.Recommendations;
 
     private void RefreshFilter()
     {
@@ -161,6 +167,7 @@ public sealed partial class ShellViewModel : ObservableObject
         CurrentPage = page;
         if (page == PageId.PackageManagers && PackageManagersPage.Managers.Count == 0)
             await PackageManagersPage.RefreshCommand.ExecuteAsync(null);
+        if (page == PageId.Recommendations) await RecommendationsPage.RefreshAsync();
     }
 
     public async Task InitializeAsync()
@@ -188,6 +195,7 @@ public sealed partial class ShellViewModel : ObservableObject
             var progress = new Progress<string>(m => Status = m);
             var result = await _inventory.ScanAsync(_settings, progress, default);
             Rebuild(result.Applications);
+            _ = RecommendationsPage.LearnAsync(result.Applications);   // notice what is new since the last scan
             var problems = result.Providers.Where(p => p.Availability.Health != ProviderHealth.NotInstalled && (!p.Availability.IsAvailable || p.Error is not null)).ToList();
             ProviderNotice = problems.Count == 0 ? "" : string.Join("  ", problems.Select(p => $"{p.ProviderId}: {p.Error ?? p.Availability.Message}"));
             Status = $"Scan complete: {result.Applications.Count} applications in {result.Duration.TotalSeconds:F1}s.";
@@ -214,6 +222,7 @@ public sealed partial class ShellViewModel : ObservableObject
         AttentionCount = Apps.Count(r => r.NeedsAttention);
         Selected = keepSelected is null ? null : Apps.FirstOrDefault(r => r.App.Id == keepSelected);
         RebuildProviders();
+        if (CurrentPage == PageId.Recommendations) _ = RecommendationsPage.RefreshAsync();   // the inventory changed under an open page
         RefreshFilter();
         DiscoverPage.RefreshInstalledState();
     }

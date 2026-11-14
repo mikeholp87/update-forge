@@ -62,3 +62,10 @@ public interface IEngineLock
     /// <summary>Returns null if another engine already holds the lock.</summary>
     IDisposable? TryAcquire();
 }
+
+/// <summary>Where what was learned about the user's interests is kept. Local only; it is deliberately not part of the settings that go into diagnostics.</summary>
+public interface IInterestStore
+{
+    Task<UpdateForge.Core.Recommendations.InterestProfile> LoadAsync(CancellationToken ct);
+    Task SaveAsync(UpdateForge.Core.Recommendations.InterestProfile profile, CancellationToken ct);
+}

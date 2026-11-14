@@ -245,3 +245,25 @@ public sealed class SqliteSettingsStore(Database db) : ISettingsStore
         return Task.CompletedTask;
     }
 }
+
+/// <summary>Learned interests as one JSON document in the Settings table (key "interests"), apart from the app settings.</summary>
+public sealed class SqliteInterestStore(Database db) : IInterestStore
+{
+    private static readonly JsonSerializerOptions Json = new() { WriteIndented = false };
+
+    public Task<UpdateForge.Core.Recommendations.InterestProfile> LoadAsync(CancellationToken ct)
+    {
+        using var c = db.Open();
+        var json = Database.Scalar(c, null, "SELECT Value FROM Settings WHERE Key='interests';") as string;
+        if (json is null) return Task.FromResult(new UpdateForge.Core.Recommendations.InterestProfile());
+        try { return Task.FromResult(JsonSerializer.Deserialize<UpdateForge.Core.Recommendations.InterestProfile>(json, Json) ?? new()); }
+        catch (JsonException) { return Task.FromResult(new UpdateForge.Core.Recommendations.InterestProfile()); }   // unreadable: start learning again
+    }
+
+    public Task SaveAsync(UpdateForge.Core.Recommendations.InterestProfile profile, CancellationToken ct)
+    {
+        using var c = db.Open();
+        c.Cmd("INSERT OR REPLACE INTO Settings (Key,Value) VALUES ('interests',$v);", null, ("$v", JsonSerializer.Serialize(profile, Json))).ExecuteNonQuery();
+        return Task.CompletedTask;
+    }
+}

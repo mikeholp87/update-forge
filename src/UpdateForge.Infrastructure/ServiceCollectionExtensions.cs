@@ -74,6 +74,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJobStore, SqliteJobStore>();
         services.AddSingleton<IHistoryStore, SqliteHistoryStore>();
         services.AddSingleton<ISettingsStore, SqliteSettingsStore>();
+        services.AddSingleton<IInterestStore, SqliteInterestStore>();
         services.AddSingleton<IEngineLock, MutexEngineLock>();
         services.AddSingleton<ProviderRegistry>();
         services.AddSingleton<PackageManagerService>();
@@ -82,6 +83,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<UpdateEngine>();
         services.AddSingleton<BundleService>();
         services.AddSingleton<PackageInstallService>();
+        services.AddSingleton<RecommendationService>();
         services.AddSingleton<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>();
 
         Directory.CreateDirectory(LogDirectory);

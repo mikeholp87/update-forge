@@ -85,6 +85,7 @@ internal static class Program
                 "update" => await Update(services, rest[1..], json, cts.Token),
                 "export" => await Export(services, rest[1..], json, cts.Token),
                 "bundle" => await Bundle(services, rest[1..], json, cts.Token, HardCancel.Token),
+                "recommend" => await Recommend(services, json, cts.Token),
                 "history" => await History(services, json, cts.Token),
                 "providers" => await Providers(services, json, cts.Token),
                 "doctor" => await Doctor(services, json, cts.Token),
@@ -120,6 +121,7 @@ internal static class Program
           updateforge bundle export <file>  Save your WinGet packages to a bundle file (Windows only)
           updateforge bundle import <file> [--install] [--exact-versions]
                                             Show what a bundle would install; --install installs the missing packages
+          updateforge recommend             Suggest packages that fit what is installed, with tips
           updateforge history               Show update history
           updateforge providers             Show provider availability
           updateforge doctor                Check the environment
@@ -320,6 +322,36 @@ internal static class Program
         path ??= Path.Combine(Directory.Exists(desktop) ? desktop : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), $"updateforge-diagnostics-{DateTime.Now:yyyyMMdd-HHmm}.zip");
         await sp.GetRequiredService<UpdateForge.Infrastructure.Diagnostics.DiagnosticsExporter>().ExportAsync(path, ServiceCollectionExtensions.LogDirectory, ct);
         Console.WriteLine($"Redacted diagnostics written to {path}. Review it before attaching it to a GitHub issue.");
+        return ExitCodes.Ok;
+    }
+
+    private static async Task<int> Recommend(ServiceProvider sp, bool json, CancellationToken ct)
+    {
+        var report = await sp.GetRequiredService<RecommendationService>().GetAsync(await LoadInventory(sp, forceScan: false, ct), ct);
+        if (json)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(new
+            {
+                Interests = report.Interests.Select(i => new { i.Niche, i.Name, i.Score, i.Strength, i.Apps }),
+                Items = report.Items.Select(r => new
+                {
+                    r.Key, Kind = r.Kind.ToString(), r.Title, r.Category, r.Why, r.Tip, r.Because,
+                    Manager = r.Package?.ProviderId, Package = r.Package?.PackageId, Source = r.Package?.Source,
+                }),
+            }, JsonOut));
+            return ExitCodes.Ok;
+        }
+        if (report.Interests.Count > 0)
+            Console.WriteLine("You seem to be into: " + string.Join(", ", report.Interests.Take(5).Select(i => $"{i.Name} ({i.Strength})")) + (report.Learning ? "" : "  [learning is off]") + "\n");
+        foreach (var r in report.Items)
+        {
+            Console.WriteLine(r.Kind == UpdateForge.Core.Recommendations.RecommendationKind.Tip
+                ? $"tip  {r.Title}\n     {r.Why}\n     {r.Tip}"
+                : $"+ {r.Title}  ({r.Package!.ProviderId}: {r.Package.PackageId}){(r.Because is null ? "" : "  - " + r.Because)}\n     {r.Why}{(r.Tip is null ? "" : "\n     Tip: " + r.Tip)}");
+            Console.WriteLine();
+        }
+        if (report.Items.Count == 0) Console.WriteLine("Nothing to suggest right now.");
+        if (report.DismissedCount > 0) Console.Error.WriteLine($"{report.DismissedCount} dismissed suggestion(s) hidden.");
         return ExitCodes.Ok;
     }
 

@@ -75,6 +75,7 @@ public sealed class App : Avalonia.Application
             .AddSingleton<SettingsViewModel>()
             .AddSingleton<PackageManagersViewModel>()
             .AddSingleton<DiscoverViewModel>()
+            .AddSingleton<RecommendationsViewModel>()
             .AddSingleton<ShellViewModel>()
             .BuildServiceProvider();
 

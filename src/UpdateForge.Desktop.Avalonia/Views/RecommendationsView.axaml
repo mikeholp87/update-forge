@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="UpdateForge.Desktop.Views.RecommendationsView">
+    <UserControl.Resources>
+        <!-- One row for both packages and tips: what it is, why it fits, how to use it, and what you can do about it. -->
+        <DataTemplate x:Key="Row">
+            <StackPanel>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,16">
+                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,24,0">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Classes="heading" Text="{Binding Title}" />
+                            <TextBlock Classes="muted small" Text="{Binding Meta}" VerticalAlignment="Bottom" Margin="0,0,0,2" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Why}" TextWrapping="Wrap" />
+                        <TextBlock Classes="muted" Text="{Binding Tip}" TextWrapping="Wrap" IsVisible="{Binding HasTip}" />
+                        <TextBlock Classes="muted small" Text="{Binding Because}" IsVisible="{Binding HasBecause}" />
+                        <TextBlock Text="{Binding Status}" IsVisible="{Binding HasStatus}" Foreground="{DynamicResource Warn}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="6" Width="140" VerticalAlignment="Top">
+                        <Button Classes="accent" Content="Install" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                IsVisible="{Binding IsPackage}" IsEnabled="{Binding CanInstall}"
+                                Command="{Binding $parent[UserControl].DataContext.InstallCommand}" CommandParameter="{Binding}" />
+                        <Button Classes="quiet" Content="Not interested" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                IsVisible="{Binding IsPackage}" Foreground="{DynamicResource Muted}"
+                                Command="{Binding $parent[UserControl].DataContext.DismissCommand}" CommandParameter="{Binding}" />
+                        <Button Classes="quiet" Content="Hide this tip" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                IsVisible="{Binding !IsPackage}" Foreground="{DynamicResource Muted}"
+                                Command="{Binding $parent[UserControl].DataContext.DismissCommand}" CommandParameter="{Binding}" />
+                    </StackPanel>
+                </Grid>
+                <Border Classes="rule" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="4">
+            <TextBlock Classes="title" Text="Recommended for you" />
+            <TextBlock Classes="muted" Text="{Binding Message}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,8">
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" />
+                <Button Classes="quiet" Content="{Binding RestoreText}" Command="{Binding RestoreDismissedCommand}" IsVisible="{Binding HasDismissed}" />
+            </StackPanel>
+            <ProgressBar IsIndeterminate="True" Height="2" IsVisible="{Binding IsLoading}" />
+
+            <!-- What it has learned: visible, switchable and erasable. -->
+            <Border Classes="panel" Margin="0,4,0,8">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="heading" Text="{Binding LearnedText}" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Interests}" IsVisible="{Binding HasInterests}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="200,80,*" Margin="0,2">
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Medium" />
+                                    <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Strength}" />
+                                    <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
+                        <CheckBox Content="Learn from what I install" IsChecked="{Binding LearnEnabled}" />
+                        <Button Classes="quiet" Content="Forget what it learned" Command="{Binding ForgetCommand}" Foreground="{DynamicResource Muted}" />
+                    </StackPanel>
+                    <TextBlock Classes="muted small" TextWrapping="Wrap"
+                               Text="Learned on this computer only, from the apps you install and the suggestions you accept or turn down. It fades over a few months and is never sent anywhere." />
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Packages}" ItemTemplate="{StaticResource Row}" />
+
+            <TextBlock Classes="heading" Text="Tips for your setup" Margin="0,28,0,0" IsVisible="{Binding HasTips}" />
+            <ItemsControl ItemsSource="{Binding Tips}" ItemTemplate="{StaticResource Row}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
