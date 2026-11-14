@@ -8,7 +8,7 @@ Desktop.Avalonia (Linux)┤
 Cli (net10.0 + -windows)┼─> Application ──> Core
 Background (+ .Windows) ┘        ▲
 Infrastructure (SQLite, Serilog, engine lock) ┘
-Providers.* (WinGet, Windows[registry+MSIX], Scoop, Chocolatey, Linux[apt, Flatpak, Snap], Npm) ──> Core
+Providers.* (WinGet, Windows[registry+MSIX], Scoop, Chocolatey, Linux[apt, Flatpak, Snap, pnpm, Bun, Yarn, Cargo, pipx, Homebrew], Npm) ──> Core
 ```
 
 - **Core**: models (`InstalledApplication`, status/support enums), `IUpdateProvider`, version comparison (`AppVersion`, unknown-safe), `InventoryMerger` (identity/dedupe), `JobStateMachine`, `UpdatePolicy`, `ProcessRunner`.

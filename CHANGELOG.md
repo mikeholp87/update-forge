@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Linux providers for pnpm, Bun, Yarn Classic (1.x), Cargo, pipx and Homebrew.
 
 ## [0.2.0] - 2026-11-14
 ### Added

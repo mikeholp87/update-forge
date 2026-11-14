@@ -22,7 +22,7 @@ A free, open-source (MIT) software updater for **Windows 11** (and compatible Wi
 
 ## Requirements
 
-**Linux**: x64 or arm64 with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. Providers: apt, Flatpak, Snap and npm, each used when installed. See [Linux](#linux).
+**Linux**: x64 or arm64 with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. Providers: apt, Flatpak, Snap, npm, pnpm, Bun, Yarn Classic, Cargo, pipx and Homebrew, each used when installed. See [Linux](#linux).
 
 **Windows**: Windows 11 x64 (Windows 10 2004+ expected to work, untested). WinGet (App Installer) is needed for update installation.
 
@@ -30,7 +30,7 @@ A free, open-source (MIT) software updater for **Windows 11** (and compatible Wi
 
 The Linux build shares the engine, database, CLI and policy with the Windows build. What differs:
 
-- **Providers**: `apt` (packages you installed yourself plus anything upgradable), `flatpak` (apps, per user and system installation), `snap` and `npm`. Debian version ordering (epochs, `~`) is implemented, so `1:2.0` correctly beats `1.9`.
+- **Providers**: `apt` (packages you installed yourself plus anything upgradable), `flatpak` (apps, per user and system installation), `snap`, `npm`, and the per-user tools `pnpm`, `bun`, `yarn` (Classic 1.x only), `cargo` (crates from `cargo install`), `pipx` and `brew` (Homebrew formulae and casks). The per-user tools are looked up on PATH and in their usual install folders, never run as root, and validate every package name before it reaches a command line. Cargo, Bun, Yarn and pipx have no bulk outdated command, so each package is looked up individually. Cargo updates recompile the crate; pipx and Homebrew always move to the newest release (they cannot pin a version). Debian version ordering (epochs, `~`) is implemented, so `1:2.0` correctly beats `1.9`.
 - **Privileges**: apt upgrades need root, so UpdateForge runs `apt-get` through `pkexec` (polkit shows the password prompt) and never stores or asks for your password itself. Flatpak and Snap authorize through their own polkit prompts. Scheduled runs never prompt: updates needing authorization stay pending and you are notified.
 - **Scheduling**: a systemd *user* timer (`~/.config/systemd/user/updateforge.timer`), no root. It fires while you are logged in; `loginctl enable-linger $USER` keeps it running after logout. Battery use maps to `ConditionACPower`, metered connections are read from NetworkManager (`nmcli`).
 - **GUI**: Avalonia (`updateforge`), with a tray icon (GNOME needs the AppIndicator extension) and notifications through `notify-send`.
@@ -73,6 +73,7 @@ See [SECURITY.md](SECURITY.md). In short: official package-manager CLIs at fixed
 - Store apps: no supported API exists to check or trigger updates for other apps; UpdateForge offers an *Open Microsoft Store* handoff.
 - Packages needing administrator rights are never installed unattended; Chocolatey installs and upgrades require running UpdateForge elevated. Installing from Discover always asks first, and npm packages can run their own install scripts, so check what you install.
 - WinGet integration uses the CLI (anchored on locale-independent `winget export`), not yet the COM API.
+- The pnpm, Bun, Yarn Classic, Cargo, pipx and Homebrew providers are on by default on Linux and each is skipped when its tool is not installed (turn them off under Package Managers). They are fixture-tested; Cargo, Bun, Yarn and Homebrew were also run read-only against the real tools, while pnpm and pipx were not (no working install available), so their JSON parsing follows the documented output only. No real update or install was run for any of them.
 - Scoop/Chocolatey providers are fixture-tested only, and the npm provider is fixture-tested plus checked read-only against a real npm (listing, search, registry, version check; no real update or install was run). npm must be installed with the standard Node.js layout (nvm and Volta layouts are not supported yet), and Scoop cannot install a specific version; Portable-app provider, self-update, localization, ARM64 and UI automation tests are not implemented yet.
 
 ## Build from source (Windows)

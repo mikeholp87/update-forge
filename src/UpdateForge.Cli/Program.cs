@@ -63,6 +63,12 @@ internal static class Program
             .AddSingleton<IUpdateProvider, AptProvider>()
             .AddSingleton<IUpdateProvider, FlatpakProvider>()
             .AddSingleton<IUpdateProvider, SnapProvider>()
+            .AddSingleton<IUpdateProvider, PnpmProvider>()
+            .AddSingleton<IUpdateProvider, BunProvider>()
+            .AddSingleton<IUpdateProvider, YarnProvider>()
+            .AddSingleton<IUpdateProvider, CargoProvider>()
+            .AddSingleton<IUpdateProvider, PipxProvider>()
+            .AddSingleton<IUpdateProvider, HomebrewProvider>()
             .AddSingleton<IScheduleService, SystemdScheduleService>()
             .AddSingleton<INetworkCostProbe, NmcliNetworkCostProbe>()
 #endif
