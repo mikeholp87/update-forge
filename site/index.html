@@ -6,17 +6,17 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#edeff5" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)" />
-    <title>Update Forge: a free, private software updater for Windows</title>
+    <title>Update Forge: a free, private software updater for Windows and Linux</title>
     <meta
       name="description"
-      content="Update Forge is a free, open source software updater for Windows 11. It finds what is installed, shows which apps have a newer version, and installs updates through WinGet, Scoop and Chocolatey, on demand or on a schedule. No telemetry, no accounts."
+      content="Update Forge is a free, open source software updater for Windows 11 and Linux. It finds what is installed, shows which apps have a newer version, and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm, on demand or on a schedule. No telemetry, no accounts."
     />
     <link rel="canonical" href="https://mikeholp87.github.io/update-forge/" />
     <link rel="icon" href="./assets/icon-72.png" type="image/png" />
     <link rel="apple-touch-icon" href="./assets/icon-180.png" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Update Forge" />
-    <meta property="og:title" content="Update Forge: keep every Windows app up to date" />
+    <meta property="og:title" content="Update Forge: keep every app up to date on Windows and Linux" />
     <meta
       property="og:description"
       content="A free, open source software updater for Windows 11. Honest update status, verified installs, optional schedule. No telemetry, no accounts."
@@ -27,7 +27,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Update Forge: keep every Windows app up to date. Free and open source, no telemetry, no accounts." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Update Forge: keep every Windows app up to date" />
+    <meta name="twitter:title" content="Update Forge: keep every app up to date on Windows and Linux" />
     <meta
       name="twitter:description"
       content="A free, open source software updater for Windows 11. Honest update status, verified installs, optional schedule. No telemetry, no accounts."
@@ -39,9 +39,9 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "Update Forge",
-        "description": "A software updater for Windows 11 that inventories installed applications and installs updates through WinGet, Scoop and Chocolatey.",
+        "description": "A software updater for Windows 11 and Linux that inventories installed applications and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm.",
         "applicationCategory": "UtilitiesApplication",
-        "operatingSystem": "Windows 11, Windows 10 (2004 and later)",
+        "operatingSystem": "Windows 11, Windows 10 (2004 and later), Linux",
         "url": "https://mikeholp87.github.io/update-forge/",
         "downloadUrl": "https://github.com/mikeholp87/update-forge",
         "license": "https://github.com/mikeholp87/update-forge/blob/main/LICENSE",
@@ -546,6 +546,11 @@
       .copy:hover {
         background: rgba(255, 255, 255, 0.16);
       }
+      .linux-install {
+        margin: 36px 0 6px;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+      }
       .fine {
         margin: 10px 0 0;
         color: var(--muted);
@@ -680,9 +685,9 @@
             <div class="eyebrow">Free and open source software updater</div>
             <h1 id="hero-title">Keep every app up to date.</h1>
             <p class="lead">
-              Update Forge finds the software installed on your Windows PC, shows which apps have a
-              newer version, and installs updates through trusted package managers, on demand or on a
-              schedule. It tells you plainly what it can and cannot update.
+              Update Forge finds the software installed on your Windows PC or Linux machine, shows
+              which apps have a newer version, and installs updates through trusted package managers,
+              on demand or on a schedule. It tells you plainly what it can and cannot update.
             </p>
             <div class="actions">
               <a class="button" href="#install">Get started</a>
@@ -693,6 +698,7 @@
               <li>No telemetry</li>
               <li>No accounts or ads</li>
               <li>Windows 11</li>
+              <li>Linux</li>
             </ul>
           </div>
           <figure class="shot">
@@ -723,6 +729,15 @@
                 MSIX apps, and Scoop, Chocolatey and npm global packages when they are installed.
               </p>
               <span class="tag">WinGet, Store, Scoop, Chocolatey, npm</span>
+            </article>
+            <article class="card">
+              <h3>Runs on Linux too</h3>
+              <p>
+                The same engine, history and honest status on Linux, with apt, Flatpak, Snap and npm
+                providers. Upgrades that need root go through your desktop's own password prompt, and
+                the schedule is a systemd user timer.
+              </p>
+              <span class="tag">apt, Flatpak, Snap, npm</span>
             </article>
             <article class="card">
               <h3>Honest status</h3>
@@ -762,8 +777,9 @@
             <article class="card">
               <h3>Runs on a schedule</h3>
               <p>
-                A per-user Task Scheduler task scans even when the window is closed. In Automatic
-                Safe mode it installs only supported, non-elevated updates.
+                A per-user Task Scheduler task (a systemd user timer on Linux) scans even when the
+                window is closed. In Automatic Safe mode it installs only supported updates that need
+                no administrator password.
               </p>
               <span class="tag">Optional</span>
             </article>
@@ -774,7 +790,7 @@
                 <code>updateforge-cli</code> with <code>scan</code>, <code>outdated</code>,
                 <code>update --all</code>, <code>export</code>, <code>bundle</code> and <code>--json</code>.
               </p>
-              <span class="tag">WPF and CLI</span>
+              <span class="tag">WPF, Avalonia and CLI</span>
             </article>
             <article class="card">
               <h3>Export to CSV</h3>
@@ -813,9 +829,29 @@
         <section id="screenshots" class="shots" aria-labelledby="shots-title">
           <div class="section-head">
             <h2 id="shots-title">See what is installed and what changed</h2>
-            <p>Search every application on the PC, and keep a history of each update with its result.</p>
+            <p>Search every application on the machine, and keep a history of each update with its result.</p>
           </div>
           <div class="shots-grid">
+            <figure class="shot">
+              <img
+                src="./assets/linux-dashboard-dark.png"
+                width="1413"
+                height="430"
+                loading="lazy"
+                alt="The Update Forge dashboard on Linux: Up to date, 488 packages from 4 managers, a single bar split between apt, npm, Flatpak and Snap, and one row per manager with its package count and nothing pending"
+              />
+              <figcaption>On Linux the dashboard answers one question first, then shows where your software comes from.</figcaption>
+            </figure>
+            <figure class="shot">
+              <img
+                src="./assets/linux-installed-dark.png"
+                width="1413"
+                height="640"
+                loading="lazy"
+                alt="The Installed applications page on Linux listing npm and apt packages with their versions in a monospace column, the package manager and an Up to date status"
+              />
+              <figcaption>Installed applications on Linux, across apt, Flatpak, Snap and npm in one list.</figcaption>
+            </figure>
             <figure class="shot">
               <img
                 src="./assets/installed-dark.png"
@@ -893,7 +929,8 @@
               <h3>You stay in control</h3>
               <p>
                 Manual mode is the default. It never restarts your PC automatically, and the
-                scheduled task never runs as SYSTEM and never elevates.
+                scheduled task never runs as SYSTEM or root and never elevates. On Linux it never
+                sees or stores your password.
               </p>
             </article>
           </div>
@@ -926,7 +963,22 @@
                 </tr>
                 <tr>
                   <td>npm (global packages)</td>
-                  <td>Supported when Node.js is installed. Update and install by exact version; linked packages are left alone.</td>
+                  <td>Windows and Linux. Supported when Node.js is installed. Update and install by exact version; linked packages are left alone.</td>
+                </tr>
+                <tr>
+                  <td>apt (Debian, Ubuntu and derivatives)</td>
+                  <td>
+                    Linux. Packages you installed plus anything upgradable; upgrades install the exact
+                    version that was checked, through <code>pkexec</code>. Holds are respected.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Flatpak</td>
+                  <td>Linux. Apps in your user and system installations, each updated where it lives.</td>
+                </tr>
+                <tr>
+                  <td>Snap</td>
+                  <td>Linux. Snaps from the store, authorised through snapd. Held snaps are left alone.</td>
                 </tr>
                 <tr>
                   <td>Microsoft Store apps</td>
@@ -940,8 +992,10 @@
             </table>
           </div>
           <p class="fine">
-            Built for Windows 11 x64. Windows 10 2004 and later is expected to work but is untested. ARM64 is not
-            supported yet.
+            Windows: built for Windows 11 x64. Windows 10 2004 and later is expected to work but is
+            untested. Linux: developed and tested on Debian x64 with a desktop session (X11 or Wayland).
+            Other distributions work for Flatpak, Snap and npm; apt needs a Debian-based system. ARM64 is
+            not supported yet.
           </p>
         </section>
 
@@ -994,6 +1048,23 @@ dotnet run --project src/UpdateForge.Cli -c Release -- update --all</code></pre>
               </p>
             </li>
           </ol>
+          <h3 class="linux-install">On Linux</h3>
+          <p class="fine">
+            There is no repository yet. Build the package from source: you need Git and the
+            <a href="https://dotnet.microsoft.com/download">.NET 10 SDK</a>.
+          </p>
+          <div class="codebox">
+            <pre class="code" tabindex="0"><code>git clone https://github.com/mikeholp87/update-forge.git
+cd update-forge
+./scripts/publish-linux.sh 0.1.0
+sudo apt install ./artifacts/updateforge_0.1.0_amd64.deb
+updateforge</code></pre>
+          </div>
+          <p class="fine">
+            Or run it without installing: <code>dotnet run --project src/UpdateForge.Desktop.Avalonia -c Release</code>
+            for the app and <code>dotnet run --project src/UpdateForge.Cli -c Release -f net10.0 -- outdated</code> for the
+            command line. The <code>updateforge-cli schedule apply</code> command registers the systemd user timer.
+          </p>
         </section>
 
         <section id="faq" class="faq" aria-labelledby="faq-title">
@@ -1005,6 +1076,14 @@ dotnet run --project src/UpdateForge.Cli -c Release -- update --all</code></pre>
             <p>
               No. There is no telemetry and no account. The only network traffic is your package
               managers (WinGet and friends) fetching the updates you ask for.
+            </p>
+          </details>
+          <details>
+            <summary>Does it work on Linux?</summary>
+            <p>
+              Yes. The Linux build has an app and a command line, and updates apt, Flatpak, Snap and npm
+              packages. It is developed and tested on Debian. apt needs a Debian-based system; the other
+              managers work wherever they are installed.
             </p>
           </details>
           <details>
@@ -1020,7 +1099,9 @@ dotnet run --project src/UpdateForge.Cli -c Release -- update --all</code></pre>
             <p>
               Not for most WinGet updates. Chocolatey upgrades and some system-wide installers do need
               it, and Update Forge leaves those as "approval required" unless you started it elevated. The
-              scheduled background run never elevates.
+              scheduled background run never elevates. On Linux, apt upgrades ask for your password
+              through the desktop's own prompt (polkit); Update Forge never sees it, and unattended runs
+              leave those updates pending.
             </p>
           </details>
           <details>
@@ -1041,7 +1122,8 @@ dotnet run --project src/UpdateForge.Cli -c Release -- update --all</code></pre>
           <details>
             <summary>Where are my logs, history and settings?</summary>
             <p>
-              In <code>%LOCALAPPDATA%\UpdateForge</code>: the log files, and a local SQLite database with
+              On Windows in <code>%LOCALAPPDATA%\UpdateForge</code>, on Linux in
+              <code>~/.local/share/UpdateForge</code>: the log files, and a local SQLite database with
               your inventory and update history. Use the diagnostics export for a redacted ZIP that is
               safe to attach to a bug report.
             </p>
