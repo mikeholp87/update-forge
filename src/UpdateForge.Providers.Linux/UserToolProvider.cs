@@ -49,8 +49,8 @@ public abstract partial class UserToolProvider : IUpdateProvider, IPackageManage
 
     internal string? Exe => LinuxTools.FindUser(ExeName, _binDirectory);
 
-    /// <summary>True when running as root. These tools run registry code (build scripts, lifecycle scripts) and write into the user's home, so as root they would run that code with full privileges. Settable for tests.</summary>
-    internal Func<bool> IsRoot { get; init; } = () => Environment.IsPrivilegedProcess;
+    /// <summary>True when running as root. These tools run registry code (build scripts, lifecycle scripts) and write into the user's home, so as root they would run that code with full privileges. Unix only: an elevated Windows process (an admin account, a CI runner) is not root in this sense, and these are Linux tools. Settable for tests.</summary>
+    internal Func<bool> IsRoot { get; init; } = () => !OperatingSystem.IsWindows() && Environment.IsPrivilegedProcess;
 
     private string RootRefusal => DisplayName + " is a per-user tool and will not run as root. Start UpdateForge as your normal user.";
 
