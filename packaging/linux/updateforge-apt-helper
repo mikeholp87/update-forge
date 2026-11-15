@@ -5,10 +5,22 @@
 #   updateforge-apt-helper update
 #   updateforge-apt-helper install name[:arch][=version]
 #   updateforge-apt-helper upgrade name[:arch]=version
+#   updateforge-apt-helper serve
+#
+# serve keeps one authorization for a whole UpdateForge session. It reads requests from stdin, one per line, and answers on stdout.
+# Only the process that started the helper holds the other end of those pipes: there is no socket, file or other way in.
+#   request  "<id> update" | "<id> install <pkg>" | "<id> upgrade <pkg>"   (id: digits; same rules as above, nothing else is run)
+#   reply    "R"                 once, after the root check
+#            "O <id> <text>"     one line of apt-get output (every line is prefixed, so output can never pose as a reply)
+#            "X <id> <code>"     the command finished with this exit code
+# The helper exits at end of input (UpdateForge closed or died) and after $idle seconds without a request. A running apt-get is
+# always allowed to finish.
 set -euo pipefail
 
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin LC_ALL=C LANG=C DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none
 umask 022
+
+idle=1800
 
 refuse() {
 	echo "updateforge-apt-helper: $1" >&2
@@ -20,28 +32,73 @@ name='[a-z0-9][a-z0-9+.-]{0,127}'
 arch='(:[a-z0-9][a-z0-9-]{1,15})?'
 version='[0-9][0-9A-Za-z.+~:-]{0,127}'
 
+# Sets cmd to the exact command line for a verb and its argument, or fails. Nothing else in this file chooses what runs.
+build() {
+	case "${1-}" in
+	update)
+		[[ $# -eq 1 ]] || return 1
+		cmd=(/usr/bin/apt-get update)
+		;;
+	install)
+		[[ $# -eq 2 && $2 =~ ^${name}${arch}(=${version})?$ ]] || return 1
+		cmd=(/usr/bin/apt-get install -y -o Dpkg::Options::=--force-confold -- "$2")
+		;;
+	upgrade)
+		[[ $# -eq 2 && $2 =~ ^${name}${arch}=${version}$ ]] || return 1
+		cmd=(/usr/bin/apt-get install --only-upgrade -y -o Dpkg::Options::=--force-confold -- "$2")
+		;;
+	*)
+		return 1
+		;;
+	esac
+}
+
 # Arguments are checked before the root check, so the rules can be tested without root.
-run() {
+require_root() {
 	[[ $(id -u) -eq 0 ]] || refuse "must run as root (through pkexec)"
-	exec "$@"
+}
+
+# Prefixes every output line with its request id.
+frame() {
+	local line
+	while IFS= read -r line || [[ -n $line ]]; do
+		printf 'O %s %s\n' "$1" "$line" 2>/dev/null || true
+	done
+}
+
+serve() {
+	require_root
+	# A closed reply pipe must not kill apt-get half way through an install: write errors are ignored and apt-get is drained to the end.
+	trap '' PIPE
+	echo R
+	local id verb arg extra st
+	local -a req
+	while IFS=' ' read -r -t "$idle" id verb arg extra; do
+		[[ $id =~ ^[0-9]{1,9}$ ]] || refuse "invalid request id"
+		req=("$verb")
+		[[ -z $arg ]] || req+=("$arg")
+		if [[ -z $extra && -n $verb ]] && build "${req[@]}"; then
+			set +e
+			# apt-get must not read the request pipe: stdin is /dev/null.
+			"${cmd[@]}" 2>&1 </dev/null | frame "$id"
+			st=${PIPESTATUS[0]}
+			set -e
+			echo "X $id $st" 2>/dev/null || exit 0
+		else
+			echo "O $id updateforge-apt-helper: invalid command" 2>/dev/null || exit 0
+			echo "X $id 2" 2>/dev/null || exit 0
+		fi
+	done
+	exit 0
 }
 
 [[ $# -ge 1 ]] || refuse "no command given"
 
-case "$1" in
-update)
-	[[ $# -eq 1 ]] || refuse "update takes no arguments"
-	run /usr/bin/apt-get update
-	;;
-install)
-	[[ $# -eq 2 && $2 =~ ^${name}${arch}(=${version})?$ ]] || refuse "invalid package"
-	run /usr/bin/apt-get install -y -o Dpkg::Options::=--force-confold -- "$2"
-	;;
-upgrade)
-	[[ $# -eq 2 && $2 =~ ^${name}${arch}=${version}$ ]] || refuse "invalid package"
-	run /usr/bin/apt-get install --only-upgrade -y -o Dpkg::Options::=--force-confold -- "$2"
-	;;
-*)
-	refuse "unknown command"
-	;;
-esac
+if [[ $1 == serve ]]; then
+	[[ $# -eq 1 ]] || refuse "serve takes no arguments"
+	serve
+fi
+
+build "$@" || refuse "invalid command"
+require_root
+exec "${cmd[@]}"

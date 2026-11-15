@@ -92,10 +92,11 @@ public static partial class AptParsing
 /// anything with a pending upgrade, so the list is not flooded with hundreds of libraries. Upgrades install the exact version that was
 /// checked. Installing needs root: when UpdateForge is not root the command runs through <c>pkexec</c> (polkit shows the
 /// password prompt), and unattended runs leave such updates pending. The .deb installs a helper with its own polkit action, so the prompt
-/// names UpdateForge and authorizes only "update, or install/upgrade one validated package"; without it (portable tarball) pkexec runs
+/// names UpdateForge and authorizes only "update, or install/upgrade one validated package", and one helper stays up for the session
+/// (<see cref="AptRootSession"/>) so the password is asked once; without it (portable tarball) pkexec runs
 /// apt-get through the generic "run a program as another user" action. Held packages are reported as pinned and never touched.
 /// </summary>
-public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPackageSearchProvider
+public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPackageSearchProvider, IDisposable
 {
     public const string ProviderKey = "apt";
     private readonly IProcessRunner _runner;
@@ -104,6 +105,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
     private readonly Func<bool> _isRoot;
     private readonly Func<bool> _rebootRequired;
     private readonly string? _helper;
+    private AptRootSession? _session;
 
     /// <summary>Installed by the .deb together with the polkit action <c>io.github.mikeholp87.updateforge.apt</c>.</summary>
     public const string HelperPath = "/usr/libexec/updateforge/updateforge-apt-helper";
@@ -118,7 +120,14 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
         _binDirectory = binDirectory;
         _isRoot = isRoot ?? (() => Environment.IsPrivilegedProcess);
         _rebootRequired = rebootRequired ?? (() => File.Exists("/var/run/reboot-required"));
+        // With the installed helper the password is asked once per session (see AptRootSession); no helper or no pkexec: one pkexec per command.
+        if (binDirectory is null && !_isRoot() && _helper is not null && LinuxTools.Find("pkexec") is { } pkexec) _session = new AptRootSession([pkexec, _helper, "serve"]);
     }
+
+    /// <summary>Test override: the long-lived root helper session, or null for one pkexec run per command.</summary>
+    internal AptRootSession? Session { get => _session; init => _session = value; }
+
+    public void Dispose() => _session?.Dispose();
 
     public string Id => ProviderKey;
     public string DisplayName => "apt";
@@ -154,6 +163,14 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
     /// Runs apt-get as root: directly when already root, otherwise through pkexec, preferring the UpdateForge helper (which rebuilds the
     /// same command from <paramref name="helperArgs"/>). Returns null when neither is possible.
     /// </summary>
+    /// <summary>Runs an elevated apt command through the session helper when there is one, otherwise through <see cref="Elevated"/>. Null when neither is possible.</summary>
+    private async Task<ProcessResult?> RunElevatedAsync(TimeSpan timeout, Action<string>? onLine, string[] helperArgs, string[] aptArgs, CancellationToken cancellationToken)
+    {
+        if (!_isRoot() && _session is not null) return await _session.RunAsync(helperArgs, timeout, onLine, cancellationToken).ConfigureAwait(false);
+        var spec = Elevated(timeout, onLine, helperArgs, aptArgs);
+        return spec is null ? null : await _runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
+    }
+
     private ProcessSpec? Elevated(TimeSpan timeout, Action<string>? onLine, string[] helperArgs, string[] aptArgs)
     {
         var aptGet = AptGet;
@@ -177,8 +194,8 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
 
     public async Task<string> RefreshSourcesAsync(CancellationToken cancellationToken)
     {
-        var spec = Elevated(TimeSpan.FromMinutes(5), null, ["update"], ["update"]) ?? throw new InvalidOperationException("Refreshing apt needs root; install polkit (pkexec) or run UpdateForge as root.");
-        var r = await _runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
+        var r = await RunElevatedAsync(TimeSpan.FromMinutes(5), null, ["update"], ["update"], cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Refreshing apt needs root; install polkit (pkexec) or run UpdateForge as root.");
         if (r.ExitCode is 126 or 127 && r.StdOut.Length == 0) throw new InvalidOperationException("Authorization was declined.");
         return PackageManagerOutput.RequireSuccess(r, "Refresh apt sources");
     }
@@ -262,13 +279,11 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
 
     private async Task<UpdateResult> RunInstallAsync(string[] helperArgs, string[] aptArgs, string successMessage, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
     {
-        var spec = Elevated(TimeSpan.FromMinutes(30), l => { if (l.Trim().Length > 3) progress.Report(new UpdateProgress(l.Trim())); }, helperArgs, aptArgs);
-        if (spec is null)
+        progress.Report(new UpdateProgress(_isRoot() ? "Starting apt…" : "Waiting for authorization…", null, "Installing"));
+        var r = await RunElevatedAsync(TimeSpan.FromMinutes(30), l => { if (l.Trim().Length > 3) progress.Report(new UpdateProgress(l.Trim())); }, helperArgs, aptArgs, cancellationToken).ConfigureAwait(false);
+        if (r is null)
             return new UpdateResult { Outcome = UpdateOutcome.ManualActionRequired, Error = ErrorCategory.ElevationRequired,
                 Message = "apt needs root. Install polkit (pkexec) or run: sudo apt-get " + string.Join(' ', aptArgs[..2]) + " …" };
-
-        progress.Report(new UpdateProgress(_isRoot() ? "Starting apt…" : "Waiting for authorization…", null, "Installing"));
-        var r = await _runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
         if (r.TimedOut) return UpdateResult.Fail(ErrorCategory.Timeout, "apt timed out.");
 
         var text = (r.StdOut + "\n" + r.StdErr).Trim();
