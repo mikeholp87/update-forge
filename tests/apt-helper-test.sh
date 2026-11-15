@@ -22,6 +22,8 @@ check() {
 }
 
 check accepted update
+check accepted serve
+check refused serve extra
 check accepted install vim
 check accepted install vim:amd64=2:9.1.2-1
 check accepted upgrade libssl3t64:amd64=3.5.1-1+deb13u1
