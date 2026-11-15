@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.3.3] - 2026-11-15
 ### Changed
 - apt asks for your password once per session instead of once per package. The first apt change starts `updateforge-apt-helper serve` through pkexec and the app keeps it for the session; every later apt command goes to it over pipes (no socket or file), and it re-validates each request against the same fixed verbs (update, install, upgrade). It ends when the app exits and after 30 minutes without a request (the next apt change asks again); a running apt-get is never interrupted. UpdateForge never sees or stores the password. The polkit action also uses `auth_admin_keep`, which covers installs without the helper. Takes effect when the .deb is reinstalled.
 
