@@ -10,10 +10,12 @@
   <action id="io.github.mikeholp87.updateforge.apt">
     <description>Install or update software packages with UpdateForge</description>
     <message>Authentication is required for UpdateForge to install or update software packages.</message>
+    <!-- auth_admin_keep: polkit remembers a successful login for this app (pkexec's parent process) for its retention period, about
+         five minutes, so "Update all" asks once instead of once per package. UpdateForge never sees or stores the password. -->
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>
-      <allow_active>auth_admin</allow_active>
+      <allow_active>auth_admin_keep</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/updateforge/updateforge-apt-helper</annotate>
   </action>

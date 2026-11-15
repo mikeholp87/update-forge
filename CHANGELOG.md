@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- apt updates ask for your password once per "Update all" instead of once per package: the polkit action now uses `auth_admin_keep`, so polkit remembers the login (about five minutes, set by polkit). UpdateForge never sees or stores the password. Takes effect when the .deb is reinstalled.
 ### Added
 - Recommendations (Linux app: *Recommended*; CLI: `updateforge-cli recommend`): packages that fit what is already installed, across apt, Flatpak, Homebrew, Cargo, pipx and npm, each with the reason and a usage tip. A reviewed local catalog; nothing is fetched. Also flags programs installed through two managers, held packages and managers that are turned off. Suggestions install through the same confirmed path as Discover and can be dismissed.
 - Recommendations learn your interests. Programs are sorted into areas (gaming, video and audio, development, the command line, servers, security, backups, writing, containers, ...); new programs, accepted suggestions and dismissed ones adjust a local profile that fades with a 90 day half-life, and clear interests bring more suggestions in that area with the reason. The page shows what was learned, with a switch to turn learning off and a button to erase it. Nothing is sent anywhere, and the profile is kept out of diagnostics exports.
