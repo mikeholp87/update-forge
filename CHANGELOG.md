@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- apt updates ask for your password once per "Update all" instead of once per package: the polkit action now uses `auth_admin_keep`, so polkit remembers the login (about five minutes, set by polkit). UpdateForge never sees or stores the password. Takes effect when the .deb is reinstalled.
 
 ## [0.3.2] - 2026-11-14
 ### Security
