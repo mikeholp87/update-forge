@@ -18,6 +18,7 @@ public class AptRootSessionTests : IDisposable
     /// <summary>A stand-in for the helper: says R, then answers every request line with its text and exit code 0 (7 for "fail").</summary>
     private string Fake(string body)
     {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "The stand-in helper is a bash script; apt and pkexec exist only on Linux.");
         var path = Path.Combine(_dir, "helper.sh");
         File.WriteAllText(path, "#!/bin/bash\necho start >> \"" + Path.Combine(_dir, "starts") + "\"\n" + body);
         return path;
