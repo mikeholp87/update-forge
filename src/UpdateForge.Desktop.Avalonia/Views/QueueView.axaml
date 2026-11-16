@@ -10,7 +10,7 @@
             </StackPanel>
             <ProgressBar Maximum="100" Value="{Binding OverallProgress}" Height="6" Margin="0,6,0,0" />
             <TextBlock Classes="muted" Text="{Binding Status}" TextWrapping="Wrap" />
-            <TextBlock Classes="muted" FontSize="12" Text="Running installers are never force-closed. 'Cancel pending' stops updates that have not started yet." />
+            <TextBlock Classes="muted" FontSize="14" Text="Running installers are never force-closed. 'Cancel pending' stops updates that have not started yet." />
         </StackPanel>
         <ScrollViewer Grid.Row="2">
             <ItemsControl ItemsSource="{Binding Queue}">
@@ -22,7 +22,7 @@
                                 <TextBlock Grid.Column="1" Text="{Binding State}" VerticalAlignment="Center" />
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="4">
                                     <ProgressBar Maximum="1" Value="{Binding Fraction}" IsIndeterminate="{Binding IsIndeterminate}" Height="4" />
-                                    <TextBlock Classes="muted" Text="{Binding Message}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Classes="muted" Text="{Binding Message}" FontSize="14" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </Grid>
                         </Border>

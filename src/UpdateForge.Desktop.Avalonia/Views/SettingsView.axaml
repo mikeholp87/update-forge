@@ -9,7 +9,7 @@
             <Border Classes="panel"><StackPanel Spacing="4">
                 <TextBlock Text="Installation mode" />
                 <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                <TextBlock Classes="muted" FontSize="14" TextWrapping="Wrap"
                            Text="Manual: check only, install when you click. AutomaticSafe: scheduled runs install only supported, non-interactive updates that need no administrator password and leave everything else pending. apt, system-wide Flatpak and Snap updates always wait for you." />
                 <CheckBox Content="Allow automatic updates on battery power" IsChecked="{Binding RunOnBattery}" Margin="0,12,0,0" />
                 <CheckBox Content="Allow automatic updates on metered connections" IsChecked="{Binding RunOnMetered}" />
@@ -26,7 +26,7 @@
                 <CheckBox Content="Check for updates when UpdateForge starts" IsChecked="{Binding CheckAtStartup}" />
                 <TextBlock Text="Choose enabled providers and manage sources on the Package managers page." TextWrapping="Wrap" Margin="0,8,0,0" />
                 <TextBlock Classes="muted" Text="{Binding ScheduleText}" TextWrapping="Wrap" Margin="0,8,0,0" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                <TextBlock Classes="muted" FontSize="14" TextWrapping="Wrap"
                            Text="The schedule is a systemd user timer: it runs as you, without root, while you are signed in (run 'loginctl enable-linger' to keep it running after you log out). It works even when this window is closed." />
             </StackPanel></Border>
 
@@ -36,7 +36,7 @@
                 <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" />
                 <CheckBox Content="Minimize to the system tray" IsChecked="{Binding MinimizeToTray}" />
                 <CheckBox Content="Close button hides to the system tray" IsChecked="{Binding CloseToTray}" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="GNOME needs the AppIndicator extension to show a tray icon. Without a tray, leave the two options above off." />
+                <TextBlock Classes="muted" FontSize="14" TextWrapping="Wrap" Text="GNOME needs the AppIndicator extension to show a tray icon. Without a tray, leave the two options above off." />
             </StackPanel></Border>
 
             <TextBlock Classes="heading" Text="Notifications" Margin="0,16,0,0" />

@@ -46,8 +46,8 @@
             <DataGrid ItemsSource="{Binding PendingUpdates}" AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                    <DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="*" FontFamily="{StaticResource MonoFont}" FontSize="12" />
-                    <DataGridTextColumn Header="Available" Binding="{Binding Available}" Width="*" FontFamily="{StaticResource MonoFont}" FontSize="12" />
+                    <DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="*" FontFamily="{StaticResource MonoFont}" FontSize="14" />
+                    <DataGridTextColumn Header="Available" Binding="{Binding Available}" Width="*" FontFamily="{StaticResource MonoFont}" FontSize="14" />
                     <DataGridTextColumn Header="Manager" Binding="{Binding App.ProviderId}" Width="*" />
                     <DataGridTemplateColumn Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>

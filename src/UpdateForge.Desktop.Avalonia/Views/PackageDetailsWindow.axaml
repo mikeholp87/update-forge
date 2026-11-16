@@ -6,7 +6,7 @@
     <Grid RowDefinitions="*,Auto">
         <ScrollViewer Grid.Row="0" Padding="24,16">
             <StackPanel Spacing="4">
-                <TextBlock Text="{Binding Row.Name}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Row.Name}" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Classes="muted" TextWrapping="Wrap">
                     <Run Text="{Binding Row.PackageId}" /><Run Text=" · " /><Run Text="{Binding Row.Version}" /><Run Text=" · " /><Run Text="{Binding Row.Manager}" /><Run Text=" · " /><Run Text="{Binding Row.Source}" />
                 </TextBlock>
@@ -26,7 +26,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Classes="muted" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="12" Text="Details come from the package manager's catalog and are not reviewed by UpdateForge." />
+                <TextBlock Classes="muted" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="14" Text="Details come from the package manager's catalog and are not reviewed by UpdateForge." />
             </StackPanel>
         </ScrollViewer>
         <Border Grid.Row="1" Padding="24,12" Background="{DynamicResource SystemControlBackgroundListLowBrush}">

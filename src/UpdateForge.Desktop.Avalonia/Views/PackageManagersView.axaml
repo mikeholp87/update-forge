@@ -16,9 +16,9 @@
                         <Grid Margin="8" ColumnDefinitions="*,160">
                             <StackPanel>
                                 <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsEnabled}" FontWeight="SemiBold" />
-                                <TextBlock Classes="muted" Text="{Binding Capabilities}" FontSize="12" Margin="28,4,0,0" />
+                                <TextBlock Classes="muted" Text="{Binding Capabilities}" FontSize="14" Margin="28,4,0,0" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1"><TextBlock Text="{Binding Health}" /><TextBlock Text="{Binding Version}" TextWrapping="Wrap" FontSize="12" /></StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Text="{Binding Health}" /><TextBlock Text="{Binding Version}" TextWrapping="Wrap" FontSize="14" /></StackPanel>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -27,13 +27,13 @@
                 <StackPanel Spacing="8">
                     <TextBlock Classes="heading" Text="{Binding Selected.DisplayName}" />
                     <TextBlock Text="{Binding Selected.Details}" TextWrapping="Wrap" />
-                    <TextBlock Classes="muted" Text="{Binding Selected.Path}" TextWrapping="Wrap" FontSize="12" />
+                    <TextBlock Classes="muted" Text="{Binding Selected.Path}" TextWrapping="Wrap" FontSize="14" />
                     <WrapPanel>
                         <Button Content="Show sources" Command="{Binding ShowSourcesCommand}" Margin="0,0,8,8" />
                         <Button Content="Refresh sources" Command="{Binding RefreshSourcesCommand}" Margin="0,0,8,8" />
                         <Button Content="Setup instructions" Command="{Binding OpenSetupCommand}" Margin="0,0,0,8" />
                     </WrapPanel>
-                    <TextBlock FontSize="12" TextWrapping="Wrap"
+                    <TextBlock FontSize="14" TextWrapping="Wrap"
                                Text="apt refresh runs apt-get update as root and asks for your password. Homebrew refresh runs brew update. Flatpak, Snap, npm, pnpm, Bun, Yarn, Cargo and pipx check their catalogs during every scan. Source configuration is shown as reported by each manager; use its CLI to add or remove sources." />
                     <TextBox Text="{Binding SourceOutput, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="monospace" MinHeight="100" MaxHeight="260" />
                 </StackPanel>

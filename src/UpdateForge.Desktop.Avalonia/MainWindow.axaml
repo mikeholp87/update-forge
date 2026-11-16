@@ -11,7 +11,7 @@
             <Grid RowDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="20,22,20,22">
                     <Image Source="/Assets/UpdateForge-512.png" Width="26" Height="26" />
-                    <TextBlock Text="UpdateForge" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Text="UpdateForge" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Margin="0,0,12,0" Spacing="2">

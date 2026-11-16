@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Larger text throughout the app (base 13→15 px, small and monospace 12→14, headings 15→17, titles 22→24).
 
 ## [0.3.4] - 2026-11-16
 ### Fixed
