@@ -41,11 +41,11 @@ build() {
 		;;
 	install)
 		[[ $# -eq 2 && $2 =~ ^${name}${arch}(=${version})?$ ]] || return 1
-		cmd=(/usr/bin/apt-get install -y -o Dpkg::Options::=--force-confold -- "$2")
+		cmd=(/usr/bin/apt-get install -y -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=600 -- "$2")
 		;;
 	upgrade)
 		[[ $# -eq 2 && $2 =~ ^${name}${arch}=${version}$ ]] || return 1
-		cmd=(/usr/bin/apt-get install --only-upgrade -y -o Dpkg::Options::=--force-confold -- "$2")
+		cmd=(/usr/bin/apt-get install --only-upgrade -y -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=600 -- "$2")
 		;;
 	*)
 		return 1

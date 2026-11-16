@@ -333,11 +333,14 @@ public class HomebrewTests
     private static HomebrewProvider Provider(ScriptedRunner r) => new(r, NullLogger<HomebrewProvider>.Instance, "/fake/bin");
 
     [Fact]
-    public void Parses_versions_and_takes_the_last_kept_version()
+    public void Parses_versions_and_takes_the_newest_kept_version()
     {
         var map = HomebrewParsing.ParseVersions(Versions);
         Assert.Equal("4.0.0_1", map["ada-url"]);
         Assert.Equal("0.26.0", map["bat"]);
+        // brew lists kept versions in no fixed order; this was read as the old 5.1.1 and the update reported as failed.
+        Assert.Equal("5.2.0", HomebrewParsing.ParseVersions("simdjson 5.2.0 5.1.1\nmerve 1.2.2_5 1.2.2_4\n")["simdjson"]);
+        Assert.Equal("1.2.2_5", HomebrewParsing.ParseVersions("merve 1.2.2_5 1.2.2_4\n")["merve"]);
         Assert.Equal(["a", "b@3.12"], HomebrewParsing.ParseNames("a\n==> Casks\nb@3.12\n--bad\n"));
     }
 
