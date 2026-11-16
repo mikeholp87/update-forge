@@ -4,19 +4,20 @@ using Microsoft.Extensions.Logging;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Processes;
 using UpdateForge.Core.Providers;
+using UpdateForge.Core.Versioning;
 
 namespace UpdateForge.Providers.Linux;
 
 public static class HomebrewParsing
 {
-    /// <summary>Parses <c>brew list --versions</c> (<c>name 1.0 1.1</c>); when several versions are kept, the last one is reported.</summary>
+    /// <summary>Parses <c>brew list --versions</c> (<c>name 1.0 1.1</c>); when several versions are kept (brew prints them in no fixed order), the newest one is reported.</summary>
     internal static IReadOnlyDictionary<string, string> ParseVersions(string output)
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var line in LinuxTools.Lines(output))
         {
             var t = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-            if (t.Length >= 2 && HomebrewProvider.IsValidBrewName(t[0])) map[t[0]] = t[^1];
+            if (t.Length >= 2 && HomebrewProvider.IsValidBrewName(t[0])) map[t[0]] = t[1..].Aggregate((best, v) => AppVersion.Compare(best, v) == VersionOrder.Older ? v : best);
         }
         return map;
     }

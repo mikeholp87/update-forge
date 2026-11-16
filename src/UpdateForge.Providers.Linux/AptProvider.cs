@@ -263,7 +263,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
         // Installing the exact version that was checked (not "latest") keeps the result identical to what the user was shown.
         var target = $"{app.PackageId}{(app.Architecture is null ? "" : ":" + app.Architecture)}={version}";
         _log.LogInformation("Upgrading apt package {Package}", target);
-        return await RunInstallAsync(["upgrade", target], ["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", "--", target], "Upgraded with apt.", progress, cancellationToken).ConfigureAwait(false);
+        return await RunInstallAsync(["upgrade", target], ["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", "-o", "DPkg::Lock::Timeout=600", "--", target], "Upgraded with apt.", progress, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
@@ -274,7 +274,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
             return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "apt version failed validation; refusing to run.");
         _log.LogInformation("Installing apt package {Package} (correlation {Correlation})", request.PackageId, request.CorrelationId);
         var target = request.Version is null ? request.PackageId : $"{request.PackageId}={request.Version}";
-        return await RunInstallAsync(["install", target], ["install", "-y", "-o", "Dpkg::Options::=--force-confold", "--", target], "Installed.", progress, cancellationToken).ConfigureAwait(false);
+        return await RunInstallAsync(["install", target], ["install", "-y", "-o", "Dpkg::Options::=--force-confold", "-o", "DPkg::Lock::Timeout=600", "--", target], "Installed.", progress, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<UpdateResult> RunInstallAsync(string[] helperArgs, string[] aptArgs, string successMessage, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
