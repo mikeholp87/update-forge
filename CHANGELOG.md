@@ -1,10 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.3.4] - 2026-11-16
 ### Fixed
 - apt upgrades no longer fail at once when `unattended-upgrades` or a software center holds the dpkg lock: apt now waits up to 10 minutes for it (`DPkg::Lock::Timeout=600`), and its "Waiting for cache lock" line shows as progress.
 - Homebrew: an update was reported as "installed version did not change" when `brew list --versions` printed the new version before the old one that Homebrew kept (seen on `simdjson`, `merve`). The newest listed version is used.
-
 
 ## [0.3.3] - 2026-11-15
 ### Changed
