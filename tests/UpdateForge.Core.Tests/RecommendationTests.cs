@@ -34,6 +34,43 @@ public class RecommendationEngineTests
     }
 
     [Fact]
+    public void A_windows_inventory_gets_winget_suggestions()
+    {
+        var r = RecommendationEngine.Generate(Ctx([App("Git", "winget", "Git.Git"), App("VLC media player", "winget", "VideoLAN.VLC")], providers: ["winget"]));
+        var rg = Find(r, "ripgrep")!;
+        Assert.Equal("winget", rg.Package!.ProviderId);
+        Assert.Equal("BurntSushi.ripgrep.MSVC", rg.Package.PackageId);
+        Assert.Null(rg.Because);                      // broad: no invented reason
+        Assert.NotNull(Find(r, "ffmpeg"));           // "VideoLAN.VLC" answers to "vlc"
+        Assert.NotNull(Find(r, "powertoys"));
+        Assert.DoesNotContain(r, x => x.Package is { ProviderId: not "winget" });
+    }
+
+    [Fact]
+    public void A_winget_package_already_installed_is_not_suggested()
+    {
+        var r = RecommendationEngine.Generate(Ctx([App("Git", "winget", "Git.Git"), App("ripgrep", "winget", "BurntSushi.ripgrep.MSVC")], providers: ["winget"]));
+        Assert.Null(Find(r, "ripgrep"));
+    }
+
+    [Fact]
+    public void Windows_only_suggestions_never_appear_without_winget()
+    {
+        var r = RecommendationEngine.Generate(Ctx([App("bash", "apt"), App("git", "apt")]));
+        Assert.DoesNotContain(r, x => x.Package?.ProviderId == "winget");
+        Assert.Null(Find(r, "powertoys"));
+    }
+
+    [Fact]
+    public void Every_winget_id_in_the_catalog_is_well_formed()
+    {
+        var r = RecommendationEngine.Generate(Ctx([App("Git", "winget", "Git.Git"), App("Steam", "winget", "Valve.Steam"), App("VLC media player", "winget", "VideoLAN.VLC")], providers: ["winget"]), maxPackages: 100);
+        var ids = r.Where(x => x.Package is { ProviderId: "winget" }).Select(x => x.Package!.PackageId).ToList();
+        Assert.NotEmpty(ids);
+        Assert.All(ids, id => Assert.Matches(@"^[A-Za-z0-9][A-Za-z0-9._+-]{2,100}$", id));
+    }
+
+    [Fact]
     public void A_flatpak_id_matches_by_its_last_segment()
     {
         var r = RecommendationEngine.Generate(Ctx([App("Steam", "flatpak", "com.valvesoftware.Steam")]));

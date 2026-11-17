@@ -13,7 +13,15 @@ using UpdateForge.Core.Updates;
 
 namespace UpdateForge.Desktop.ViewModels;
 
-public enum PageId { Dashboard, Applications, Queue, History, PackageManagers, Settings, Discover }
+/// <summary>One package manager's share of the inventory, for the dashboard's breakdown bar and list.</summary>
+public sealed record ProviderSummary(string Id, string Name, int Count, int Pending, System.Windows.Media.Brush Brush)
+{
+    public string CountText => Count == 1 ? "1 package" : $"{Count} packages";
+    public string PendingText => Pending == 0 ? "nothing pending" : $"{Pending} pending";
+    public bool HasPending => Pending > 0;
+}
+
+public enum PageId { Dashboard, Applications, Queue, History, PackageManagers, Settings, Discover, Recommendations }
 
 public sealed partial class ShellViewModel : ObservableObject
 {
@@ -32,7 +40,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ShellViewModel(InventoryService inventory, UpdateEngine engine, ISettingsStore settingsStore, IExclusionStore exclusions,
         IInventoryStore inventoryStore, IScanHistoryStore scanHistory, IHistoryStore history, HistoryViewModel historyVm, SettingsViewModel settingsVm,
-        BundleService bundles, ILogger<ShellViewModel> log, PackageManagersViewModel managersVm, DiscoverViewModel discoverVm)
+        BundleService bundles, ILogger<ShellViewModel> log, PackageManagersViewModel managersVm, DiscoverViewModel discoverVm, RecommendationsViewModel recommendationsVm)
     {
         _bundles = bundles;
         _inventory = inventory; _engine = engine; _settingsStore = settingsStore; _exclusions = exclusions;
@@ -41,6 +49,10 @@ public sealed partial class ShellViewModel : ObservableObject
         SettingsPage = settingsVm;
         PackageManagersPage = managersVm;
         DiscoverPage = discoverVm;
+        RecommendationsPage = recommendationsVm;
+        recommendationsVm.GetInventory = () => [.. Apps.Select(r => r.App)];
+        recommendationsVm.PackageInstalled += () => _ = ScanCoreAsync(notify: false);
+        recommendationsVm.Notify += (title, text) => { if (_settings.NotifyCompleted) Notify?.Invoke(title, text); };
         discoverVm.IsAlreadyInstalled = p => Apps.Any(r =>
             string.Equals(r.App.PackageId, p.PackageId, StringComparison.OrdinalIgnoreCase) && string.Equals(r.App.ProviderId, p.ProviderId, StringComparison.OrdinalIgnoreCase));
         discoverVm.PackageInstalled += () => _ = ScanCoreAsync(notify: false);
@@ -54,6 +66,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public SettingsViewModel SettingsPage { get; }
     public PackageManagersViewModel PackageManagersPage { get; }
     public DiscoverViewModel DiscoverPage { get; }
+    public RecommendationsViewModel RecommendationsPage { get; }
 
     public ObservableCollection<AppRowViewModel> Apps { get; } = [];
     public ObservableCollection<AppRowViewModel> PendingUpdates { get; } = [];
@@ -66,15 +79,15 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private string _search = "";
     [ObservableProperty] private AppRowViewModel? _selected;
     [ObservableProperty] private string _status = "Ready";
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle)), NotifyPropertyChangedFor(nameof(Headline))] private bool _isBusy;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isUpdating;
     [ObservableProperty] private double _overallProgress;
     [ObservableProperty] private bool _overallIndeterminate;
-    [ObservableProperty] private int _installedCount;
-    [ObservableProperty] private int _updatesCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Subline))] private int _installedCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Headline)), NotifyPropertyChangedFor(nameof(HasUpdates))] private int _updatesCount;
     [ObservableProperty] private int _upToDateCount;
-    [ObservableProperty] private int _attentionCount;
-    [ObservableProperty] private string _lastScanText = "Never";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(AttentionText))] private int _attentionCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Subline))] private string _lastScanText = "Never";
     [ObservableProperty] private string _lastSuccessText = "—";
     [ObservableProperty] private string _providerNotice = "";
     [ObservableProperty] private string _automaticText = "Automatic updates: off";
@@ -82,6 +95,41 @@ public sealed partial class ShellViewModel : ObservableObject
 
     /// <summary>True when neither a scan nor an update run is in progress; scan/update buttons bind to this.</summary>
     public bool IsIdle => !IsBusy && !IsUpdating;
+
+    /// <summary>The dashboard's one-line answer: what needs the user, or that nothing does.</summary>
+    public string Headline => IsBusy ? "Checking…" : UpdatesCount switch { 0 => "Up to date", 1 => "1 update ready", _ => $"{UpdatesCount} updates ready" };
+
+    public bool HasUpdates => UpdatesCount > 0;
+
+    public string Subline => InstalledCount == 0 && LastScanText == "Never" ? "No scan yet. Scan to see what is installed."
+        : $"{InstalledCount} packages from {Providers.Count} {(Providers.Count == 1 ? "manager" : "managers")}, last scanned {LastScanText}";
+
+    public string AttentionText => AttentionCount == 0 ? "" : $"{AttentionCount} need a look: held back, excluded, or not updatable automatically.";
+
+    public ObservableCollection<ProviderSummary> Providers { get; } = [];
+
+    private static readonly Dictionary<string, (string Name, string Color)> ProviderStyle = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["winget"] = ("WinGet", "#4F9FD6"),
+        ["registry"] = ("Installed programs", "#8A94A0"),
+        ["msix"] = ("Microsoft Store", "#6F7FFF"),
+        ["scoop"] = ("Scoop", "#3AA6A0"),
+        ["chocolatey"] = ("Chocolatey", "#B8845A"),
+        ["npm"] = ("npm", "#8DB35A"),
+    };
+
+    private void RebuildProviders()
+    {
+        Providers.Clear();
+        foreach (var g in Apps.GroupBy(r => r.App.ProviderId, StringComparer.OrdinalIgnoreCase).OrderByDescending(g => g.Count()))
+        {
+            var (name, color) = ProviderStyle.TryGetValue(g.Key, out var st) ? st : (g.Key, "#8A94A0");
+            var brush = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color));
+            brush.Freeze();
+            Providers.Add(new ProviderSummary(g.Key, name, g.Count(), g.Count(r => r.App.UpdateAvailable && !r.IsExcluded), brush));
+        }
+        OnPropertyChanged(nameof(Subline));
+    }
 
     public event Action<string, string>? Notify;
 
@@ -98,6 +146,7 @@ public sealed partial class ShellViewModel : ObservableObject
         CurrentPage = page;
         if (page == PageId.PackageManagers && PackageManagersPage.Managers.Count == 0)
             await PackageManagersPage.RefreshCommand.ExecuteAsync(null);
+        if (page == PageId.Recommendations) await RecommendationsPage.RefreshAsync();
     }
 
     public async Task InitializeAsync()
@@ -150,8 +199,11 @@ public sealed partial class ShellViewModel : ObservableObject
         UpToDateCount = Apps.Count(r => r.App.Status == UpdateStatus.UpToDate);
         AttentionCount = Apps.Count(r => r.NeedsAttention);
         Selected = keepSelected is null ? null : Apps.FirstOrDefault(r => r.App.Id == keepSelected);
+        RebuildProviders();
         AppsView.Refresh();
         DiscoverPage.RefreshInstalledState();
+        // Keep learning even when the Recommended page is never opened.
+        _ = RecommendationsPage.LearnAsync([.. Apps.Select(r => r.App)]);
     }
 
     private async Task RefreshMetaAsync()

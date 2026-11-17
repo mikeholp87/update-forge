@@ -35,6 +35,9 @@
                 <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavDiscover}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Discover}"
                            Icon="{ui:SymbolIcon Search24}" Content="Discover packages" AutomationProperties.Name="Go to Discover packages" />
+                <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavRecommendations}"
+                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Recommendations}"
+                           Icon="{ui:SymbolIcon Sparkle24}" Content="Recommended" AutomationProperties.Name="Go to Recommended" />
                 <ui:Button Margin="0,0,0,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource NavQueue}"
                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:PageId.Queue}"
                            Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update queue" AutomationProperties.Name="Go to Update queue" />
@@ -51,6 +54,7 @@
 
             <Grid Grid.Column="1" Margin="8,0,24,16">
                 <views:DiscoverView DataContext="{Binding DiscoverPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Discover}" />
+                <views:RecommendationsView DataContext="{Binding RecommendationsPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Recommendations}" />
                 <views:PackageManagersView DataContext="{Binding PackageManagersPage}" Visibility="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualsToVisibility}, ConverterParameter=PackageManagers}" />
                 <views:DashboardView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Dashboard}" />
                 <views:ApplicationsView Visibility="{Binding CurrentPage, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Applications}" />
