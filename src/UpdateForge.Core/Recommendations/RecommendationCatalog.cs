@@ -19,7 +19,7 @@ internal sealed record Rule(string Key, string Title, string Category, string Wh
 /// </summary>
 internal static class RecommendationCatalog
 {
-    private static Candidate Win(string id) => new("winget", id);
+    private static Candidate Win(string id) => new("winget", id, "winget");
     private static Candidate Apt(string id) => new("apt", id);
     private static Candidate Brew(string id) => new("brew", id);
     private static Candidate Cargo(string id) => new("cargo", id);

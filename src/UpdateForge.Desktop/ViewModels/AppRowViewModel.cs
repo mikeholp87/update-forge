@@ -40,7 +40,10 @@ public sealed partial class AppRowViewModel(InstalledApplication app, bool faile
         _ => "Unknown",
     };
 
-    public bool NeedsAttention => !App.IsExcluded && (Failed || (App.UpdateAvailable && !App.CanAutoUpdate) || (App.Status == UpdateStatus.Unknown && App.Support == UpdateSupport.ManualRequired));
+    /// <summary>Store apps update themselves; Windows gives other programs no way to check, so being unverifiable is not a problem to fix.</summary>
+    private bool IsStoreApp => App.ProviderId.Equals("msix", StringComparison.OrdinalIgnoreCase);
+
+    public bool NeedsAttention => !App.IsExcluded && (Failed || (App.UpdateAvailable && !App.CanAutoUpdate) || (App.Status == UpdateStatus.Unknown && App.Support == UpdateSupport.ManualRequired && !IsStoreApp));
 
     public bool Matches(AppFilter filter) => filter switch
     {

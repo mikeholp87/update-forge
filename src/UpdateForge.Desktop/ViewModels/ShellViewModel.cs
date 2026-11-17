@@ -104,7 +104,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public string Subline => InstalledCount == 0 && LastScanText == "Never" ? "No scan yet. Scan to see what is installed."
         : $"{InstalledCount} packages from {Providers.Count} {(Providers.Count == 1 ? "manager" : "managers")}, last scanned {LastScanText}";
 
-    public string AttentionText => AttentionCount == 0 ? "" : $"{AttentionCount} need a look: held back, excluded, or not updatable automatically.";
+    public string AttentionText => AttentionCount == 0 ? "" : $"{AttentionCount} need a look: failed, or need you to approve the update.";
 
     public ObservableCollection<ProviderSummary> Providers { get; } = [];
 

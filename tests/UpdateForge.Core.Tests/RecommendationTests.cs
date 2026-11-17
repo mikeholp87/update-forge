@@ -62,6 +62,15 @@ public class RecommendationEngineTests
     }
 
     [Fact]
+    public void Every_winget_suggestion_names_an_approved_source()
+    {
+        var r = RecommendationEngine.Generate(Ctx([App("Git", "winget", "Git.Git"), App("Steam", "winget", "Valve.Steam"), App("VLC media player", "winget", "VideoLAN.VLC")], providers: ["winget"]), maxPackages: 100);
+        var w = r.Where(x => x.Package is { ProviderId: "winget" }).ToList();
+        Assert.NotEmpty(w);
+        Assert.All(w, x => Assert.True(x.Package!.Source is "winget" or "msstore"));
+    }
+
+    [Fact]
     public void Every_winget_id_in_the_catalog_is_well_formed()
     {
         var r = RecommendationEngine.Generate(Ctx([App("Git", "winget", "Git.Git"), App("Steam", "winget", "Valve.Steam"), App("VLC media player", "winget", "VideoLAN.VLC")], providers: ["winget"]), maxPackages: 100);
