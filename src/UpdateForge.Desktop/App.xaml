@@ -24,6 +24,15 @@
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
+            <Style x:Key="NavRecommendations" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Transparent" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CurrentPage}" Value="Recommendations">
+                        <Setter Property="Appearance" Value="Secondary" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
             <Style x:Key="NavPackageManagers" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                 <Setter Property="Appearance" Value="Transparent" />
                 <Style.Triggers>

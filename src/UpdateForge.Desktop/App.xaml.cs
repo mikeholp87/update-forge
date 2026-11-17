@@ -79,6 +79,7 @@ public partial class App : System.Windows.Application
             .AddSingleton<SettingsViewModel>()
             .AddSingleton<PackageManagersViewModel>()
             .AddSingleton<DiscoverViewModel>()
+            .AddSingleton<RecommendationsViewModel>()
             .AddSingleton<ShellViewModel>()
             .BuildServiceProvider();
 

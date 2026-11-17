@@ -13,37 +13,52 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- The answer first: does anything need me? -->
         <StackPanel Grid.Row="0">
-            <TextBlock Style="{StaticResource PageTitle}" Text="System software status" />
-            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                <Run Text="Last scan:" /> <Run Text="{Binding LastScanText, Mode=OneWay}" />
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="12" Height="12" Margin="0,6,12,0" VerticalAlignment="Center" Fill="{DynamicResource SystemFillColorCautionBrush}"
+                         Visibility="{Binding HasUpdates, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock FontSize="32" FontWeight="SemiBold" Text="{Binding Headline}" AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Update status" />
+            </StackPanel>
+            <TextBlock Margin="0,2,0,0" Text="{Binding Subline}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <TextBlock Margin="0,2,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                <Run Text="Last successful update:" /> <Run Text="{Binding LastSuccessText, Mode=OneWay}" />
                 <Run Text="   ·   " /> <Run Text="{Binding AutomaticText, Mode=OneWay}" />
             </TextBlock>
+            <TextBlock Margin="0,6,0,0" Text="{Binding AttentionText}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                       Visibility="{Binding AttentionText, Converter={StaticResource StringToVisibility}}" />
         </StackPanel>
 
-        <UniformGrid Grid.Row="1" Rows="1" Columns="5" Margin="0,16,0,0">
-            <ui:Card Margin="0,0,8,0" AutomationProperties.Name="Installed applications count">
-                <StackPanel><TextBlock Style="{StaticResource StatNumber}" Text="{Binding InstalledCount}" /><TextBlock Style="{StaticResource StatLabel}" Text="Installed applications" TextWrapping="Wrap" /></StackPanel>
-            </ui:Card>
-            <ui:Card Margin="0,0,8,0" AutomationProperties.Name="Updates available count">
-                <StackPanel><TextBlock Style="{StaticResource StatNumber}" Text="{Binding UpdatesCount}" Foreground="{DynamicResource SystemFillColorAttentionBrush}" /><TextBlock Style="{StaticResource StatLabel}" Text="Updates available" TextWrapping="Wrap" /></StackPanel>
-            </ui:Card>
-            <ui:Card Margin="0,0,8,0" AutomationProperties.Name="Up to date count">
-                <StackPanel><TextBlock Style="{StaticResource StatNumber}" Text="{Binding UpToDateCount}" Foreground="{DynamicResource SystemFillColorSuccessBrush}" /><TextBlock Style="{StaticResource StatLabel}" Text="Up to date" TextWrapping="Wrap" /></StackPanel>
-            </ui:Card>
-            <ui:Card Margin="0,0,8,0" AutomationProperties.Name="Requires attention count">
-                <StackPanel><TextBlock Style="{StaticResource StatNumber}" Text="{Binding AttentionCount}" Foreground="{DynamicResource SystemFillColorCautionBrush}" /><TextBlock Style="{StaticResource StatLabel}" Text="Requires attention" TextWrapping="Wrap" /></StackPanel>
-            </ui:Card>
-            <ui:Card AutomationProperties.Name="Last successful update">
-                <StackPanel><TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding LastSuccessText}" TextWrapping="Wrap" /><TextBlock Style="{StaticResource StatLabel}" Text="Last successful update" TextWrapping="Wrap" /></StackPanel>
-            </ui:Card>
-        </UniformGrid>
+        <StackPanel Grid.Row="1" Margin="0,20,0,0">
+            <!-- Where your software comes from: one bar, split by manager. Segments are built in code-behind (proportional widths). -->
+            <Grid x:Name="Bar" Height="8" Margin="0,0,0,8" />
+            <ItemsControl ItemsSource="{Binding Providers}" AutomationProperties.Name="Packages by manager">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="22" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="140" />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Width="9" Height="9" Fill="{Binding Brush}" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="Medium" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding CountText}" Margin="0,0,24,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Grid.Column="3" Text="{Binding PendingText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
-            <ui:Button Appearance="Primary" Icon="{ui:SymbolIcon ArrowSync24}" Content="Scan now" Command="{Binding ScanCommand}"
-                       IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" AutomationProperties.Name="Scan now" />
-            <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update all" Command="{Binding UpdateAllCommand}"
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+            <ui:Button Appearance="Primary" Icon="{ui:SymbolIcon ArrowDownload24}" Content="Update all" Command="{Binding UpdateAllCommand}"
                        IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" AutomationProperties.Name="Update all" />
+            <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon ArrowSync24}" Content="Scan now" Command="{Binding ScanCommand}"
+                       IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" AutomationProperties.Name="Scan now" />
             <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Clock24}" Content="Schedule updates" Command="{Binding NavigateCommand}"
                        CommandParameter="{x:Static vm:PageId.Settings}" Margin="0,0,8,0" AutomationProperties.Name="Schedule updates" />
             <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon History24}" Content="View history" Command="{Binding NavigateCommand}"

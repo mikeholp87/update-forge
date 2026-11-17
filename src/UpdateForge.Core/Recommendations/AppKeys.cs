@@ -13,6 +13,10 @@ internal static class AppKeys
             keys.Add(a.PackageId.Trim().ToLowerInvariant());
             if (a.ProviderId.Equals("flatpak", StringComparison.OrdinalIgnoreCase) && a.PackageId.Contains('.'))
                 keys.Add(a.PackageId[(a.PackageId.LastIndexOf('.') + 1)..].ToLowerInvariant());
+            // WinGet ids are Publisher.Product[.Variant]: "VideoLAN.VLC" answers to "vlc" and "Git.Git" to "git".
+            if (a.ProviderId.Equals("winget", StringComparison.OrdinalIgnoreCase) && a.PackageId.Contains('.'))
+                foreach (var part in a.PackageId.Split('.'))
+                    if (part.Length >= 3) keys.Add(part.ToLowerInvariant());
         }
         return keys;
     }

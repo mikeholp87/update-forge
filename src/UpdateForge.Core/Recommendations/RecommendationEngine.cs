@@ -49,7 +49,7 @@ public static class RecommendationEngine
             var pick = rule.Candidates.FirstOrDefault(c => context.InstallableProviders.Contains(c.ProviderId));
             if (pick is null) continue;   // no usable manager on this machine can install it
 
-            results.Add(new Recommendation(rule.Key, RecommendationKind.Package, rule.Title, rule.Category, rule.Why, rule.Tip, because,
+            results.Add(new Recommendation(rule.Key, RecommendationKind.Package, rule.Title, rule.Category, rule.Why, OperatingSystem.IsWindows() && rule.WindowsTip is not null ? rule.WindowsTip : rule.Tip, because,
                 new RecommendedPackage(pick.ProviderId, pick.PackageId, pick.Source), priority, niches));
         }
 

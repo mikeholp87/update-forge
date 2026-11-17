@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Windows: a **Recommended** page, ported from the Linux app. Suggestions come from the reviewed local catalog (now with WinGet packages and Windows-specific entries such as PowerToys and Windows Terminal), each with the reason it fits and a tip. Interests are learned locally, can be switched off or erased, and suggestions can be installed (after confirmation) or dismissed.
+- Windows: the dashboard now leads with the answer ("5 updates ready" or "Up to date"), followed by a per-manager breakdown bar, in the style of the Linux dashboard.
 
 ## [0.3.4] - 2026-11-16
 ### Fixed
