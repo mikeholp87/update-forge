@@ -35,4 +35,10 @@ public sealed record RecommendationContext
 
     /// <summary>What was learned so far. Empty means "use only what is installed right now".</summary>
     public InterestProfile Profile { get; init; } = new();
+
+    /// <summary>Menu entries and install history read from this computer, or null when unavailable.</summary>
+    public SystemSignals? Signals { get; init; }
+
+    /// <summary>Candidates found outside the catalog (the machine's own package metadata, or an opt-in popularity list).</summary>
+    public IReadOnlyList<DiscoveredPackage> Discovered { get; init; } = [];
 }

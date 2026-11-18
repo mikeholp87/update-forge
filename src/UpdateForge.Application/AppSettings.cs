@@ -35,6 +35,10 @@ public sealed record AppSettings
     public bool NotifyRestart { get; init; } = true;
     /// <summary>Learn interests from what gets installed so recommendations improve. Off keeps recommendations to what is installed right now.</summary>
     public bool LearnInterests { get; init; } = true;
+    /// <summary>Look through this computer's own package metadata for things related to what is installed. Nothing leaves the computer.</summary>
+    public bool DiscoverFromRepositories { get; init; } = true;
+    /// <summary>Also ask a public popularity list (Flathub) about the interest areas learned. Sends only a category name; off until the user opts in.</summary>
+    public bool OnlineDiscovery { get; init; }
     /// <summary>Recommendation keys the user chose not to see again.</summary>
     public IReadOnlyList<string> DismissedRecommendations { get; init; } = [];
 
@@ -53,7 +57,7 @@ public sealed record AppSettings
             MaxParallelUpdates = Math.Clamp(MaxParallelUpdates, 1, 4),
             Theme = Theme is "Light" or "Dark" ? Theme : "System",
             EnabledProviders = [.. EnabledProviders.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase)],
-            DismissedRecommendations = [.. (DismissedRecommendations ?? []).Where(k => !string.IsNullOrWhiteSpace(k) && k.Length <= 80).Distinct(StringComparer.Ordinal).Take(200)],
+            DismissedRecommendations = [.. (DismissedRecommendations ?? []).Where(k => !string.IsNullOrWhiteSpace(k) && k.Length <= 160).Distinct(StringComparer.Ordinal).Take(200)],
         };
     }
 }

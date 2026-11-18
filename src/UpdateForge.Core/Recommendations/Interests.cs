@@ -12,6 +12,9 @@ public sealed record InterestProfile
     public IReadOnlyList<string> SeenApps { get; init; } = [];
 
     public DateTimeOffset UpdatedAt { get; init; }
+
+    /// <summary>True once the install history was used to seed the weights. Forgetting keeps it true, so forgotten interests do not come straight back.</summary>
+    public bool HistorySeeded { get; init; }
 }
 
 /// <param name="Niche">Stable key, e.g. "gaming".</param>
@@ -67,8 +70,10 @@ public static class InterestModel
     private const double MinWeight = -5, MaxWeight = 20;
     private const int MaxSeen = 3000;
     private const double StaticCap = 6;
+    private const double LauncherWeight = 0.5, LauncherCap = 2.0;
+    private const int HistoryDays = 60;
 
-    public static IReadOnlyList<Interest> Compute(InterestProfile profile, IReadOnlyList<InstalledApplication> installed)
+    public static IReadOnlyList<Interest> Compute(InterestProfile profile, IReadOnlyList<InstalledApplication> installed, SystemSignals? signals = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(installed);
@@ -84,13 +89,28 @@ public static class InterestModel
             if (RecommendationCatalog.ProviderNiche.TryGetValue(app.ProviderId, out var pn)) viaProvider[pn] = viaProvider.GetValueOrDefault(pn) + 1;
         }
 
+        // Menu entries classify programs the catalog has never heard of. The share is capped because the same program can already be
+        // counted by name above (its launcher is called "GNU Image Manipulation Program", its package "gimp").
+        var viaLauncher = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var launcher in signals?.Launchers ?? [])
+        {
+            if (RecommendationCatalog.NichesByName([launcher.Name.Trim().ToLowerInvariant()]).Any()) continue;
+            foreach (var niche in CategoryNiches.FromDesktopCategories(launcher.Categories))
+            {
+                if (!viaLauncher.TryGetValue(niche, out var list)) viaLauncher[niche] = list = [];
+                list.Add(launcher.Name);
+            }
+        }
+
         var result = new List<Interest>();
         foreach (var niche in Niches.Keys)
         {
             var apps = named.GetValueOrDefault(niche) ?? [];
+            var launchers = viaLauncher.GetValueOrDefault(niche) ?? [];
+            if (apps.Count < 3) apps = [.. apps, .. launchers.Where(l => !apps.Contains(l, StringComparer.OrdinalIgnoreCase)).Take(3 - apps.Count)];
             // Programs from developer-oriented managers (npm, cargo, pipx...) say something even when the catalog has no name for them.
             var fromProvider = Math.Min(viaProvider.GetValueOrDefault(niche), 4) * 0.5;
-            var current = Math.Min(apps.Count + fromProvider, StaticCap);
+            var current = Math.Min((named.GetValueOrDefault(niche)?.Count ?? 0) + fromProvider, StaticCap) + Math.Min(launchers.Count * LauncherWeight, LauncherCap);
             var learned = profile.Weights.GetValueOrDefault(niche);
             var score = current + learned;
             if (score <= 0) continue;
@@ -100,7 +120,7 @@ public static class InterestModel
     }
 
     /// <summary>Looks at the current inventory: notices programs that are new since the last look and strengthens their niches.</summary>
-    public static InterestProfile Learn(InterestProfile profile, IReadOnlyList<InstalledApplication> installed, DateTimeOffset now)
+    public static InterestProfile Learn(InterestProfile profile, IReadOnlyList<InstalledApplication> installed, DateTimeOffset now, SystemSignals? signals = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(installed);
@@ -109,16 +129,38 @@ public static class InterestModel
 
         // The first look only records a baseline: everything already installed is "known", not "new".
         var firstLook = profile.SeenApps.Count == 0 && profile.UpdatedAt == default;
+        var gained = new Dictionary<string, double>(StringComparer.Ordinal);
+        var counted = new HashSet<string>(StringComparer.Ordinal);
         if (!firstLook)
         {
             var seen = profile.SeenApps.ToHashSet(StringComparer.Ordinal);
-            var gained = new Dictionary<string, double>(StringComparer.Ordinal);
             foreach (var app in installed.Where(a => !seen.Contains(a.Name.Trim().ToLowerInvariant())))
+            {
+                counted.Add(app.Name.Trim().ToLowerInvariant());
                 foreach (var niche in RecommendationCatalog.NichesByName(AppKeys.Of(app)))
                     gained[niche] = Math.Min(PerLearnCap, gained.GetValueOrDefault(niche) + NewProgramBoost);
-            foreach (var (niche, add) in gained) weights[niche] = Clamp(weights.GetValueOrDefault(niche) + add);
+            }
         }
-        return new InterestProfile { Weights = weights, SeenApps = [.. current.Take(MaxSeen)], UpdatedAt = now };
+
+        // The install history tells what was installed recently even on the very first look, which would otherwise only record a baseline.
+        // It counts once: after that the weights are only changed by what is new, installed or turned down.
+        var seeded = profile.HistorySeeded;
+        if (!seeded && signals is { InstalledAt.Count: > 0 })
+        {
+            seeded = true;
+            var cutoff = now.AddDays(-HistoryDays);
+            var fromHistory = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var app in installed.Where(a => !counted.Contains(a.Name.Trim().ToLowerInvariant())))
+            {
+                if (!AppKeys.Of(app).Any(k => signals.InstalledAt.TryGetValue(k, out var at) && at >= cutoff)) continue;
+                foreach (var niche in RecommendationCatalog.NichesByName(AppKeys.Of(app)))
+                    fromHistory[niche] = Math.Min(PerLearnCap, fromHistory.GetValueOrDefault(niche) + NewProgramBoost);
+            }
+            foreach (var (niche, add) in fromHistory) gained[niche] = Math.Min(PerLearnCap, gained.GetValueOrDefault(niche) + add);
+        }
+
+        foreach (var (niche, add) in gained) weights[niche] = Clamp(weights.GetValueOrDefault(niche) + add);
+        return new InterestProfile { Weights = weights, SeenApps = [.. current.Take(MaxSeen)], UpdatedAt = now, HistorySeeded = seeded };
     }
 
     /// <summary>The user installed a suggestion: that niche is a keeper.</summary>

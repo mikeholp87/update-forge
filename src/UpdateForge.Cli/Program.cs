@@ -6,6 +6,7 @@ using UpdateForge.Core.Bundles;
 using UpdateForge.Core.Export;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Providers;
+using UpdateForge.Core.Recommendations;
 using UpdateForge.Core.Updates;
 using UpdateForge.Infrastructure;
 using UpdateForge.Core.Processes;
@@ -75,6 +76,9 @@ internal static class Program
             .AddSingleton<IUpdateProvider, CargoProvider>()
             .AddSingleton<IUpdateProvider, PipxProvider>()
             .AddSingleton<IUpdateProvider, HomebrewProvider>()
+            .AddSingleton<IDiscoverySource, AptRelationDiscovery>()
+            .AddSingleton<IDiscoverySource, FlathubDiscovery>()
+            .AddSingleton<ISystemSignalSource, LinuxSystemSignals>()
             .AddSingleton<IScheduleService, SystemdScheduleService>()
             .AddSingleton<INetworkCostProbe, NmcliNetworkCostProbe>()
 #endif

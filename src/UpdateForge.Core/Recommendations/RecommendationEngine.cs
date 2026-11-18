@@ -17,7 +17,7 @@ public static class RecommendationEngine
     {
         ArgumentNullException.ThrowIfNull(context);
         var have = Index(context.Installed);
-        var interests = InterestModel.Compute(context.Profile, context.Installed).Where(i => i.Score >= InterestModel.Threshold).ToDictionary(i => i.Niche, StringComparer.Ordinal);
+        var interests = InterestModel.Compute(context.Profile, context.Installed, context.Signals).Where(i => i.Score >= InterestModel.Threshold).ToDictionary(i => i.Niche, StringComparer.Ordinal);
         var results = new List<Recommendation>();
         var nicheCount = new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -54,7 +54,55 @@ public static class RecommendationEngine
         }
 
         var packages = results.OrderByDescending(r => r.Priority).ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase).Take(maxPackages).ToList();
-        return [.. packages, .. Tips(context)];
+        return [.. packages, .. FromDiscovered(context, have, interests), .. Tips(context)];
+    }
+
+    private const int MaxDiscovered = 6, MaxDiscoveredPerNiche = 2;
+
+    /// <summary>Key under which a discovered package is remembered as dismissed.</summary>
+    public static string DiscoveredKey(DiscoveredPackage p) => $"found:{p.ProviderId.ToLowerInvariant()}:{p.PackageId.ToLowerInvariant()}";
+
+    /// <summary>
+    /// Candidates from outside the catalog, after the catalog. Never something the catalog already covers (even a dismissed catalog entry),
+    /// never something installed, and only through a manager that can install it here. Both kinds also need a clear interest in their niche, which
+    /// keeps infrastructure that merely happens to be suggested by something installed out of the list.
+    /// </summary>
+    private static List<Recommendation> FromDiscovered(RecommendationContext context, Inventory have, Dictionary<string, Interest> interests)
+    {
+        if (context.Discovered.Count == 0) return [];
+        var catalogIds = RecommendationCatalog.Rules.SelectMany(r => r.Candidates.Select(c => c.PackageId.ToLowerInvariant()).Append(r.Title.ToLowerInvariant()))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var scored = new List<(DiscoveredPackage Package, int Score, Interest? Interest)>();
+        foreach (var d in context.Discovered)
+        {
+            if (!context.InstallableProviders.Contains(d.ProviderId) || context.Dismissed.Contains(DiscoveredKey(d))) continue;
+            var id = d.PackageId.ToLowerInvariant();
+            if (catalogIds.Contains(id) || catalogIds.Contains(d.Name.ToLowerInvariant()) || have.Names.Contains(id) || have.Names.Contains(d.Name.ToLowerInvariant())) continue;
+            var interest = d.Niche is null ? null : interests.GetValueOrDefault(d.Niche);
+            if (interest is null) continue;
+            if (d.Origin == DiscoveryOrigin.Online)
+                scored.Add((d, 20 + (int)Math.Min(interest.Score, 10) * 3 + (int)(Math.Log10(Math.Max(d.Popularity, 1)) * 2), interest));
+            else if (d.RelatedTo.Count > 0)
+                scored.Add((d, 30 + Math.Min(d.RelatedTo.Count, 5) * 4 + (int)Math.Min(interest.Score, 10), interest));
+        }
+
+        var perNiche = new Dictionary<string, int>(StringComparer.Ordinal);
+        var results = new List<Recommendation>();
+        foreach (var (d, score, interest) in scored.OrderByDescending(s => s.Score).ThenBy(s => s.Package.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (results.Count >= MaxDiscovered) break;
+            var bucket = d.Niche!;
+            if (perNiche.GetValueOrDefault(bucket) >= MaxDiscoveredPerNiche) continue;
+            perNiche[bucket] = perNiche.GetValueOrDefault(bucket) + 1;
+            var because = d.Origin == DiscoveryOrigin.Online
+                ? $"Popular on {(d.Source is null ? "the store" : char.ToUpperInvariant(d.Source[0]) + d.Source[1..])} for {Niches.Phrase(d.Niche!)}, which you're into"
+                : "Suggested by " + string.Join(", ", d.RelatedTo.Take(2)) + (d.RelatedTo.Count > 2 ? $" and {d.RelatedTo.Count - 2} more" : "") + ", which you have installed";
+            results.Add(new Recommendation(DiscoveredKey(d), RecommendationKind.Package, d.Name, Niches.Title(d.Niche!),
+                d.Summary.Length > 0 ? d.Summary : "Found in your package sources.", null, because,
+                new RecommendedPackage(d.ProviderId, d.PackageId, d.Source), score, [d.Niche!]));
+        }
+        return results;
     }
 
     /// <summary>Why a niche suggestion appears, in plain words: what was installed, or that it was learned over time.</summary>

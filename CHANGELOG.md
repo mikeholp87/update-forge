@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Recommendations learn from more of the computer (Linux): launcher categories classify unknown programs and the dpkg install log seeds the first look.
+- Recommendations can look beyond the catalog: packages your chosen apt packages recommend or suggest (local only), and an opt-in Flathub popularity lookup for the interest areas learned (sends only an area name, cached for a day).
+- Settings `DiscoverFromRepositories` (default on) and `OnlineDiscovery` (default off), with toggles on the Recommended page.
 ### Changed
 - Larger text throughout the app (base 13→15 px, small and monospace 12→14, headings 15→17, titles 22→24).
 

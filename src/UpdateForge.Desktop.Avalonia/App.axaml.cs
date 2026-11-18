@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using UpdateForge.Application;
 using UpdateForge.Background;
 using UpdateForge.Core.Providers;
+using UpdateForge.Core.Recommendations;
 using UpdateForge.Desktop.Services;
 using UpdateForge.Desktop.ViewModels;
 using UpdateForge.Infrastructure;
@@ -69,6 +70,9 @@ public sealed class App : Avalonia.Application
             .AddSingleton<IUpdateProvider, CargoProvider>()
             .AddSingleton<IUpdateProvider, PipxProvider>()
             .AddSingleton<IUpdateProvider, HomebrewProvider>()
+            .AddSingleton<IDiscoverySource, AptRelationDiscovery>()
+            .AddSingleton<IDiscoverySource, FlathubDiscovery>()
+            .AddSingleton<ISystemSignalSource, LinuxSystemSignals>()
             .AddSingleton<IScheduleService, SystemdScheduleService>()
             .AddSingleton<IDialogService, DialogService>()
             .AddSingleton<HistoryViewModel>()
