@@ -95,3 +95,7 @@ MIT, see [LICENSE](LICENSE).
 ## Acknowledgments
 
 [WPF UI](https://github.com/lepoco/wpfui) (MIT), [TaskScheduler](https://github.com/dahall/TaskScheduler) (MIT), Serilog (Apache-2.0), Microsoft.Data.Sqlite (MIT), CommunityToolkit.Mvvm (MIT), WiX Toolset (MS-RL, build-time only). Design informed by public documentation of WinGet, Scoop, Chocolatey, UniGetUI and Patch My PC; no code was copied from them.
+
+## Author
+
+Built by [Mike Holp](https://www.ai-automation-station.com/about.html) with AI coding tools. See the Update Forge guide on [AI Automation Station](https://www.ai-automation-station.com/guides/updateforge-package-manager-windows-linux.html), and more projects at [github.com/mikeholp87](https://github.com/mikeholp87).
