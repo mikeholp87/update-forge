@@ -9,7 +9,7 @@
     <title>Update Forge: a free, private software updater for Windows and Linux</title>
     <meta
       name="description"
-      content="Update Forge is a free, open source software updater for Windows 11 and Linux. It finds what is installed, shows which apps have a newer version, and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm, on demand or on a schedule. No telemetry, no accounts."
+      content="Update Forge is a free software updater for Windows 11 and Linux. It finds outdated apps and updates them through WinGet, apt, Flatpak and more."
     />
     <link rel="canonical" href="https://mikeholp87.github.io/update-forge/" />
     <link rel="icon" href="./assets/icon-72.png" type="image/png" />
@@ -35,21 +35,35 @@
     <meta name="twitter:image" content="https://mikeholp87.github.io/update-forge/assets/og.png" />
     <meta name="twitter:image:alt" content="Update Forge: keep every Windows app up to date. Free and open source, no telemetry, no accounts." />
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Update Forge",
-        "description": "A software updater for Windows 11 and Linux that inventories installed applications and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm.",
-        "applicationCategory": "UtilitiesApplication",
-        "operatingSystem": "Windows 11, Windows 10 (2004 and later), Linux",
-        "url": "https://mikeholp87.github.io/update-forge/",
-        "downloadUrl": "https://github.com/mikeholp87/update-forge",
-        "license": "https://github.com/mikeholp87/update-forge/blob/main/LICENSE",
-        "isAccessibleForFree": true,
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "Mike Holp", "url": "https://www.ai-automation-station.com/about.html", "sameAs": ["https://github.com/mikeholp87", "https://www.ai-automation-station.com/"] }
-      }
-    </script>
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Update Forge",
+  "description": "A software updater for Windows 11 and Linux that inventories installed applications and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Windows 11, Windows 10 (2004 and later), Linux",
+  "url": "https://mikeholp87.github.io/update-forge/",
+  "downloadUrl": "https://github.com/mikeholp87/update-forge",
+  "license": "https://github.com/mikeholp87/update-forge/blob/main/LICENSE",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Mike Holp",
+    "url": "https://www.ai-automation-station.com/about.html",
+    "sameAs": [
+      "https://github.com/mikeholp87",
+      "https://www.ai-automation-station.com/"
+    ]
+  },
+  "softwareVersion": "0.3.4",
+  "dateModified": "2026-11-22"
+}
+</script>
     <style>
       :root {
         color-scheme: light dark;
@@ -712,6 +726,14 @@
             <figcaption>The dashboard after a scan. Updates ready to install are listed with one click each.</figcaption>
           </figure>
         </section>
+<section id="what-is" class="features" aria-labelledby="what-is-title">
+<div class="section-head">
+<h2 id="what-is-title">What is Update Forge?</h2>
+<p>Update Forge is a free, open source software updater for Windows 11 and Linux. It scans the applications installed on your computer, shows which ones have a newer version and installs updates through trusted package managers, either on demand or on a schedule. On Windows it reads WinGet, Microsoft Store, Scoop, Chocolatey and npm packages; on Linux it uses apt, Flatpak, Snap and npm. After each install it re-reads the installed version, so an update that left the old version in place is reported as a failure rather than a success. An unknown version is never reported as newer, and the app tells you plainly when it cannot update something. Update Forge has a desktop app and an updateforge-cli command with scan, outdated and update --all, uses the MIT license, and has no telemetry, accounts or ads.</p>
+<p><small>Version 0.3.4 · Updated November 22, 2026</small></p>
+</div>
+</section>
+
 
         <section id="features" class="features" aria-labelledby="features-title">
           <div class="section-head">
