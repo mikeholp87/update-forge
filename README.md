@@ -1,10 +1,14 @@
 # UpdateForge
 
+[![License](https://img.shields.io/github/license/mikeholp87/update-forge)](https://github.com/mikeholp87/update-forge/blob/main/LICENSE)
+
 Website: <https://mikeholp87.github.io/update-forge/>
 
 A free, open-source (MIT) software updater for **Windows 11** (and compatible Windows 10) and **Linux**. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
 
 > **Status: 0.3.4.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
+
+<p align="center"><img src="site/assets/dashboard-dark.png" alt="The UpdateForge dashboard on Windows" width="49%"> <img src="site/assets/linux-dashboard-dark.png" alt="The UpdateForge dashboard on Linux" width="49%"></p>
 
 ## Features
 
