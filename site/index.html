@@ -687,6 +687,7 @@
 .button.sponsor-cta { gap: 8px; }
 @media (max-width: 480px) { header { flex-wrap: wrap; row-gap: 10px; } .nav { flex-wrap: wrap; gap: 8px; } .nav .pill { padding: 7px 11px; } .nav a { font-size: 14px; } .support { padding: 28px 18px; } }
     </style>
+      <style>.hero{grid-template-columns:minmax(0,1fr)!important;gap:28px!important}.demo-frame{width:100%;margin:0}.demo-frame iframe{display:block;width:100%;border:1px solid rgba(128,128,128,.35);border-radius:12px;background:transparent;box-shadow:0 24px 60px -28px rgba(0,0,0,.45)}</style>
   </head>
   <body>
     <a class="skip" href="#content">Skip to content</a>
@@ -717,7 +718,6 @@
             </p>
             <div class="actions">
               <a class="button" href="#install">Get started</a>
-<a class="button secondary" href="./demo/">Try the demo</a>
               <a class="button secondary" href="https://github.com/mikeholp87/update-forge">View on GitHub</a>
             </div>
             <ul class="badges" aria-label="Highlights">
@@ -728,16 +728,7 @@
               <li>Linux</li>
             </ul>
           </div>
-          <figure class="shot">
-            <img
-              src="./assets/dashboard-dark.png"
-              width="1360"
-              height="495"
-              fetchpriority="high"
-              alt="The Update Forge dashboard after a scan: 140 installed applications, 2 updates available, 50 up to date and 62 that require attention, with Claude Code and PowerShell listed as Update ready"
-            />
-            <figcaption>The dashboard after a scan. Updates ready to install are listed with one click each.</figcaption>
-          </figure>
+          <div class="demo-frame"><iframe id="demo-frame" src="./embed/" title="Interactive Update Forge demo with sample data" loading="lazy" height="720"></iframe></div>
         </section>
 <section id="what-is" class="features" aria-labelledby="what-is-title">
 <div class="section-head">
@@ -1304,5 +1295,6 @@ updateforge</code></pre>
     dlg.addEventListener('close', () => { document.documentElement.classList.remove('lb-open'); view.removeAttribute('src'); opener?.focus(); });
   })();
 </script>
+      <script>(function(){var f=document.getElementById("demo-frame");if(!f||f.hasAttribute("data-fixed"))return;function fit(){try{f.style.height=f.contentDocument.body.offsetHeight+2+"px"}catch(e){}}f.addEventListener("load",function(){fit();try{new ResizeObserver(fit).observe(f.contentDocument.body)}catch(e){}})})();</script>
   </body>
 </html>
