@@ -1,6 +1,7 @@
 namespace UpdateForge.Application;
 
-public sealed record ScheduleStatus(bool Exists, bool Enabled, DateTime? NextRun, DateTime? LastRun, string? Detail);
+/// <param name="Executable">The program the schedule runs, when the platform can tell. Lets the app notice a schedule that points at a moved or removed copy.</param>
+public sealed record ScheduleStatus(bool Exists, bool Enabled, DateTime? NextRun, DateTime? LastRun, string? Detail, string? Executable = null);
 
 /// <summary>Registers the user-context scheduled task. Never creates SYSTEM or elevated tasks.</summary>
 public interface IScheduleService

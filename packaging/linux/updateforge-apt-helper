@@ -28,6 +28,7 @@ refuse() {
 }
 
 # Same rules as AptProvider: a name can never start with '-' (option) or contain '/' (path or release).
+# --no-remove: a package that conflicts with an installed one makes apt stop instead of removing the installed one as root.
 name='[a-z0-9][a-z0-9+.-]{0,127}'
 arch='(:[a-z0-9][a-z0-9-]{1,15})?'
 version='[0-9][0-9A-Za-z.+~:-]{0,127}'
@@ -41,11 +42,11 @@ build() {
 		;;
 	install)
 		[[ $# -eq 2 && $2 =~ ^${name}${arch}(=${version})?$ ]] || return 1
-		cmd=(/usr/bin/apt-get install -y -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=600 -- "$2")
+		cmd=(/usr/bin/apt-get install -y --no-remove -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=600 -- "$2")
 		;;
 	upgrade)
 		[[ $# -eq 2 && $2 =~ ^${name}${arch}=${version}$ ]] || return 1
-		cmd=(/usr/bin/apt-get install --only-upgrade -y -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=600 -- "$2")
+		cmd=(/usr/bin/apt-get install --only-upgrade -y --no-remove -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=600 -- "$2")
 		;;
 	*)
 		return 1

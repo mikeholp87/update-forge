@@ -19,7 +19,7 @@
         <Border Grid.Row="3" Classes="panel" Margin="0,12,0,0" DataContext="{Binding Selected}" IsVisible="{Binding Converter={x:Static ObjectConverters.IsNotNull}}">
             <StackPanel Spacing="8">
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
-                <TextBlock Classes="muted" Text="{Binding TechnicalDetails}" TextWrapping="Wrap" FontFamily="monospace" FontSize="12" MaxHeight="120" />
+                <TextBlock Classes="muted" Text="{Binding TechnicalDetails}" TextWrapping="Wrap" FontFamily="monospace" FontSize="14" MaxHeight="120" />
             </StackPanel>
         </Border>
     </Grid>

@@ -6,7 +6,7 @@ Website: <https://mikeholp87.github.io/update-forge/>
 
 A free, open-source (MIT) software updater for **Windows 11** (and compatible Windows 10) and **Linux**. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
 
-> **Status: 0.3.4.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
+> **Status: 0.3.5.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
 
 <p align="center"><img src="site/assets/dashboard-dark.png" alt="The UpdateForge dashboard on Windows" width="49%"> <img src="site/assets/linux-dashboard-dark.png" alt="The UpdateForge dashboard on Linux" width="49%"></p>
 
@@ -26,7 +26,7 @@ A free, open-source (MIT) software updater for **Windows 11** (and compatible Wi
 
 ## Requirements
 
-**Linux**: x64 or arm64 with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. Providers: apt, Flatpak, Snap, npm, pnpm, Bun, Yarn Classic, Cargo, pipx and Homebrew, each used when installed. See [Linux](#linux).
+**Linux**: x64 (amd64) with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. The `.deb`, the apt repository and the tarball are built for x64 only. On arm64 you can build your own with `./scripts/publish-linux.sh <version> linux-arm64`, which is not tested in CI. Providers: apt, Flatpak, Snap, npm, pnpm, Bun, Yarn Classic, Cargo, pipx and Homebrew, each used when installed. See [Linux](#linux).
 
 **Windows**: Windows 11 x64 (Windows 10 2004+ expected to work, untested). WinGet (App Installer) is needed for update installation.
 
@@ -37,7 +37,10 @@ The Linux build shares the engine, database, CLI and policy with the Windows bui
 - **Providers**: `apt` (packages you installed yourself plus anything upgradable), `flatpak` (apps, per user and system installation), `snap`, `npm`, and the per-user tools `pnpm`, `bun`, `yarn` (Classic 1.x only), `cargo` (crates from `cargo install`), `pipx` and `brew` (Homebrew formulae and casks). The per-user tools are looked up on PATH and in their usual install folders, never run as root, and validate every package name before it reaches a command line. Cargo, Bun, Yarn and pipx have no bulk outdated command, so each package is looked up individually. Cargo updates recompile the crate; pipx and Homebrew always move to the newest release (they cannot pin a version). Debian version ordering (epochs, `~`) is implemented, so `1:2.0` correctly beats `1.9`.
 - **Privileges**: apt upgrades need root, so UpdateForge runs `apt-get` through `pkexec` (polkit shows the password prompt) and never stores or asks for your password itself. The .deb installs a small helper (`/usr/libexec/updateforge/updateforge-apt-helper`) with its own polkit action, `io.github.mikeholp87.updateforge.apt`: the prompt names UpdateForge, asks every time, and covers only "refresh sources" or "install/upgrade one package"; admins can write polkit rules for that action alone. The portable tarball has no helper and uses plain `pkexec apt-get`. Flatpak and Snap authorize through their own polkit prompts. Scheduled runs never prompt: updates needing authorization stay pending and you are notified.
 - **Scheduling**: a systemd *user* timer (`~/.config/systemd/user/updateforge.timer`), no root. It fires while you are logged in; `loginctl enable-linger $USER` keeps it running after logout. Battery use maps to `ConditionACPower`, metered connections are read from NetworkManager (`nmcli`).
-- **Recommendations**: a *Recommended* page (and `updateforge-cli recommend`) suggests packages that fit what you already have, with the reason and a usage tip: Proton tooling if you have Steam, `needrestart` and `fwupd` if you use apt, `git-delta` if you use git. It also points out programs installed through two managers, held-back packages and managers that are switched off. The catalog is reviewed and local: nothing is fetched, ranked by popularity or sent anywhere, every suggestion installs through the same confirmed path as Discover, and you can dismiss any of them for good. It also learns what you are into: programs are sorted into interest areas (gaming, development, video and audio, backups, ...), new installs and the suggestions you accept or turn down adjust a local profile that fades over a few months, and a clear interest brings more suggestions in that area, with the reason. The page shows exactly what it has learned, and you can switch learning off or erase it.
+- **Recommendations**: a *Recommended* page (and `updateforge-cli recommend`) suggests packages that fit what you already have, with the reason and a usage tip: Proton tooling if you have Steam, `needrestart` and `fwupd` if you use apt, `git-delta` if you use git. It also points out programs installed through two managers, held-back packages and managers that are switched off. The catalog is reviewed and local, every suggestion installs through the same confirmed path as Discover, and you can dismiss any of them for good. It also learns what you are into: programs are sorted into interest areas (gaming, development, video and audio, backups, ...), new installs and the suggestions you accept or turn down adjust a local profile that fades over a few months, and a clear interest brings more suggestions in that area, with the reason. The page shows exactly what it has learned, and you can switch learning off or erase it.
+  - **Learns from this computer** (Linux): menu entries and their categories classify programs the catalog has never heard of, and the dpkg install log lets the very first look learn from what you installed recently instead of only recording a baseline.
+  - **Finds more than the catalog**: it reads your own apt metadata for programs that packages you chose recommend or suggest (nothing leaves the computer; only applications in an area you are into are shown, so on a machine where nothing qualifies this stays empty). Turn it off on the page.
+  - **Optional popular-apps lookup** (off until you turn it on): asks Flathub's public API for the most installed free apps in the areas you are into. The request carries only an area name such as `Game` or `Graphics`, never what you have installed; answers are cached for a day, and installing still goes through the confirmed path.
 - **GUI**: Avalonia (`updateforge`), with a tray icon (GNOME needs the AppIndicator extension) and notifications through `notify-send`.
 - **CLI**: `updateforge-cli` with the same commands (`scan`, `outdated`, `update --all`, `schedule apply`, ...). `bundle` is WinGet-only and not available.
 - Data lives in `~/.local/share/UpdateForge` (database, logs).
@@ -47,8 +50,8 @@ Build and package (needs the .NET 10 SDK):
 ```bash
 dotnet build UpdateForge.CI.slnf -c Release
 dotnet test --project tests/UpdateForge.Core.Tests
-./scripts/publish-linux.sh 0.3.4      # artifacts/*.deb and a portable .tar.gz
-sudo apt install ./artifacts/updateforge_0.3.4_amd64.deb
+./scripts/publish-linux.sh 0.3.5      # artifacts/*.deb and a portable .tar.gz
+sudo apt install ./artifacts/updateforge_0.3.5_amd64.deb
 ```
 
 ## Install

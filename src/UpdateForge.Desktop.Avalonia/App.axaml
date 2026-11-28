@@ -75,23 +75,23 @@
             <Setter Property="Background" Value="{DynamicResource Bg}" />
             <Setter Property="Foreground" Value="{DynamicResource Text}" />
             <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="15" />
         </Style>
 
-        <!-- Type scale: 40 / 22 / 15 / 13 / 12 -->
+        <!-- Type scale: 42 / 24 / 17 / 15 / 14 -->
         <Style Selector="TextBlock.headline">
-            <Setter Property="FontSize" Value="40" />
+            <Setter Property="FontSize" Value="42" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="LetterSpacing" Value="-0.8" />
         </Style>
         <Style Selector="TextBlock.title">
-            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontSize" Value="24" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="LetterSpacing" Value="-0.3" />
             <Setter Property="Margin" Value="0,0,0,2" />
         </Style>
         <Style Selector="TextBlock.heading">
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="17" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="TextBlock.muted">
@@ -101,11 +101,11 @@
             <Setter Property="Foreground" Value="{DynamicResource Warn}" />
         </Style>
         <Style Selector="TextBlock.small">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="14" />
         </Style>
         <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
             <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="14" />
         </Style>
 
         <!-- Surfaces: one radius, one hairline. -->
@@ -198,7 +198,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource Muted}" />
             <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="SeparatorBrush" Value="Transparent" />
         </Style>
         <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
@@ -210,7 +210,7 @@
             <Setter Property="Opacity" Value="1" />
         </Style>
         <Style Selector="DataGridCell">
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="15" />
         </Style>
 
         <Style Selector="ListBox">

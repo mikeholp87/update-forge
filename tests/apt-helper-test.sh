@@ -39,5 +39,11 @@ check refused install Vim
 check refused purge vim
 check refused
 
+# Both commands that install or upgrade must refuse to remove installed packages.
+[[ $(grep -c -- '--no-remove' "$helper") -ge 2 ]] || {
+	echo "FAIL: the helper's install and upgrade commands must pass --no-remove"
+	failed=1
+}
+
 [[ $failed -eq 0 ]] && echo "apt helper: all checks passed"
 exit $failed

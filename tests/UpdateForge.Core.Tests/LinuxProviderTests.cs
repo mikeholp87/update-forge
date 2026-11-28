@@ -108,7 +108,18 @@ public class AptTests
         Assert.Equal(Path.Combine("/fake/bin", "apt-get"), call.FileName);
         Assert.Contains("vim:amd64=2:9.1.2-1", call.Arguments);
         Assert.Contains("--only-upgrade", call.Arguments);
+        Assert.Contains("--no-remove", call.Arguments);
         Assert.Equal("noninteractive", call.Environment!["DEBIAN_FRONTEND"]);
+    }
+
+    [Fact]
+    public async Task When_apt_would_have_to_remove_packages_it_stops_and_says_so()
+    {
+        var runner = Runner(_ => new ProcessResult(100, "E: Packages need to be removed but remove is disabled.", "", false));
+        var result = await Provider(runner).InstallAsync(new InstallRequest("conflicting-pkg", null), new Progress<UpdateProgress>(), CancellationToken.None);
+        Assert.Equal(UpdateOutcome.Failed, result.Outcome);
+        Assert.Contains("remove other packages", result.Message);
+        Assert.Contains("--no-remove", runner.Calls.Last().Arguments);
     }
 
     [Fact]

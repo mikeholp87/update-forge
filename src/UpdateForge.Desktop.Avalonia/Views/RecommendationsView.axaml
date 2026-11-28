@@ -62,6 +62,12 @@
                         <CheckBox Content="Learn from what I install" IsChecked="{Binding LearnEnabled}" />
                         <Button Classes="quiet" Content="Forget what it learned" Command="{Binding ForgetCommand}" Foreground="{DynamicResource Muted}" />
                     </StackPanel>
+                    <StackPanel Spacing="4" Margin="0,4,0,0">
+                        <CheckBox Content="Look for more in my package sources" IsChecked="{Binding RepositoryDiscovery}" IsVisible="{Binding HasRepositorySource}" />
+                        <CheckBox Content="Also look up popular apps on Flathub for my interests" IsChecked="{Binding OnlineDiscovery}" IsVisible="{Binding HasOnlineSource}" />
+                        <TextBlock Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding HasRepositorySource}"
+                                   Text="The first reads what your installed packages recommend, on this computer only. The second contacts flathub.org and sends only an area name such as Game or Graphics, never what you have installed. It is off until you turn it on." />
+                    </StackPanel>
                     <TextBlock Classes="muted small" TextWrapping="Wrap"
                                Text="Learned on this computer only, from the apps you install and the suggestions you accept or turn down. It fades over a few months and is never sent anywhere." />
                 </StackPanel>

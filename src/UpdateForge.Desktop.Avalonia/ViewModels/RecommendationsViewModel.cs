@@ -44,8 +44,8 @@ public sealed partial class RecommendationRow(Recommendation item) : ObservableO
 public sealed record InterestRow(string Name, string Strength, string Detail);
 
 /// <summary>
-/// Suggestions built from what is installed, with a tip for each. The catalog is local and reviewed: nothing is fetched and nothing
-/// about this machine leaves it. Installing goes through the same confirmed, validated, recorded path as Discover.
+/// Suggestions built from what is installed, with a tip for each. The catalog is local and reviewed, and so is the lookup in this computer's
+/// own package metadata. Only the opt-in popularity lookup uses the network, and it sends no information about this machine. Installing goes through the same confirmed, validated, recorded path as Discover.
 /// </summary>
 public sealed partial class RecommendationsViewModel(RecommendationService service, PackageInstallService installer, IDialogService dialogs,
     ILogger<RecommendationsViewModel> log) : ObservableObject
@@ -67,6 +67,10 @@ public sealed partial class RecommendationsViewModel(RecommendationService servi
 
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _learnEnabled = true;
+    [ObservableProperty] private bool _repositoryDiscovery = true;
+    [ObservableProperty] private bool _onlineDiscovery;
+    [ObservableProperty] private bool _hasRepositorySource;
+    [ObservableProperty] private bool _hasOnlineSource;
     private bool _syncing;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDismissed))] private int _dismissedCount;
     [ObservableProperty] private string _headline = "Recommended for you";
@@ -85,6 +89,16 @@ public sealed partial class RecommendationsViewModel(RecommendationService servi
         OnPropertyChanged(nameof(LearnedText));
         if (_syncing) return;
         _ = ApplyLearningAsync(value);
+    }
+
+    partial void OnRepositoryDiscoveryChanged(bool value) { if (!_syncing) _ = ApplyDiscoveryAsync(value, null); }
+
+    partial void OnOnlineDiscoveryChanged(bool value) { if (!_syncing) _ = ApplyDiscoveryAsync(null, value); }
+
+    private async Task ApplyDiscoveryAsync(bool? repositories, bool? online)
+    {
+        try { await service.SetDiscoveryAsync(repositories, online, default); await RefreshAsync(); }
+        catch (Exception ex) { Message = "Could not save that choice: " + ex.Message; }
     }
 
     private async Task ApplyLearningAsync(bool value)
@@ -130,6 +144,11 @@ public sealed partial class RecommendationsViewModel(RecommendationService servi
             DismissedCount = report.DismissedCount;
             _syncing = true;
             LearnEnabled = report.Learning;
+            if (report.Discovery is { } d)
+            {
+                RepositoryDiscovery = d.Repositories; OnlineDiscovery = d.Online;
+                HasRepositorySource = d.RepositoriesAvailable; HasOnlineSource = d.OnlineAvailable;
+            }
             _syncing = false;
             Interests.Clear();
             foreach (var i in report.Interests.Take(5))
@@ -138,7 +157,9 @@ public sealed partial class RecommendationsViewModel(RecommendationService servi
             OnPropertyChanged(nameof(HasInterests)); OnPropertyChanged(nameof(LearnedText));
             Message = Packages.Count + Tips.Count == 0
                 ? "Nothing to suggest right now. Your setup already covers what this list knows about."
-                : $"{Packages.Count} {(Packages.Count == 1 ? "package fits" : "packages fit")} what you have installed. Nothing here is fetched from the internet or ranked by popularity.";
+                : $"{Packages.Count} {(Packages.Count == 1 ? "package fits" : "packages fit")} what you have installed. " + (OnlineDiscovery && HasOnlineSource
+                    ? "Some come from Flathub's public popularity list; only an interest name is sent, never what you have installed."
+                    : "Nothing here is fetched from the internet.");
         }
         catch (Exception ex)
         {

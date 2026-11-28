@@ -3,7 +3,7 @@
 #   ./scripts/publish-linux.sh [version] [linux-x64|linux-arm64]
 set -euo pipefail
 
-version="${1:-0.3.4}"
+version="${1:-0.3.5}"
 rid="${2:-linux-x64}"
 case "$rid" in
 linux-x64) arch=amd64 ;;
@@ -27,6 +27,7 @@ for proj in src/UpdateForge.Desktop.Avalonia src/UpdateForge.Cli; do
 		"-p:Version=$version" -p:DebugType=none -p:DebugSymbols=false
 done
 cp LICENSE "$out/"
+./scripts/gen-notices.sh "$out" "$out/THIRD-PARTY-NOTICES.txt"
 # dotnet publish marks every .dll/.so executable and inherits the caller's umask (often 0002, so group-writable). Ship 755
 # folders and programs, 644 for everything else (shared libraries do not need the execute bit).
 find "$out" -type d -exec chmod 755 {} +
@@ -39,8 +40,33 @@ done
 tar -C "$out" -czf "artifacts/UpdateForge-$version-$rid-portable.tar.gz" .
 
 # .deb: files under /opt/updateforge, launchers in /usr/bin, desktop entry + icon.
-install -d "$pkg/DEBIAN" "$pkg/opt/updateforge" "$pkg/usr/bin" "$pkg/usr/share/applications" "$pkg/usr/share/icons/hicolor/512x512/apps"
+install -d "$pkg/DEBIAN" "$pkg/opt/updateforge" "$pkg/usr/bin" "$pkg/usr/share/applications" "$pkg/usr/share/icons/hicolor/512x512/apps" "$pkg/usr/share/doc/updateforge"
 cp -a "$out/." "$pkg/opt/updateforge/"
+# The licence files belong in /usr/share/doc (Debian policy), not next to the binaries.
+mv "$pkg/opt/updateforge/THIRD-PARTY-NOTICES.txt" "$pkg/opt/updateforge/LICENSE" "$pkg/usr/share/doc/updateforge/"
+{
+	cat <<'COPYRIGHT'
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: UpdateForge
+Source: https://github.com/mikeholp87/update-forge
+
+Files: *
+Copyright: UpdateForge contributors
+License: MIT
+
+Files: opt/updateforge/*
+Copyright: UpdateForge contributors, the .NET Foundation and contributors, and the authors of the bundled libraries
+License: MIT and others
+Comment: The application is self-contained: it ships the .NET runtime and the libraries it uses. Each component's licence and
+ copyright are listed in /usr/share/doc/updateforge/THIRD-PARTY-NOTICES.txt.
+
+License: MIT
+COPYRIGHT
+	# Debian copyright files indent license text by one space and write empty lines as " .".
+	sed -e 's/^$/ ./' -e 's/^/ /' "$pkg/usr/share/doc/updateforge/LICENSE"
+} >"$pkg/usr/share/doc/updateforge/copyright"
+rm "$pkg/usr/share/doc/updateforge/LICENSE"
+chmod 644 "$pkg/usr/share/doc/updateforge/"*
 ln -s /opt/updateforge/updateforge "$pkg/usr/bin/updateforge"
 ln -s /opt/updateforge/updateforge-cli "$pkg/usr/bin/updateforge-cli"
 install -m 644 packaging/linux/updateforge.desktop "$pkg/usr/share/applications/updateforge.desktop"
@@ -48,6 +74,7 @@ install -m 644 src/UpdateForge.Desktop/Assets/UpdateForge-512.png "$pkg/usr/shar
 # apt elevation: a fixed helper plus its own polkit action (the portable tarball falls back to plain pkexec).
 install -D -m 755 packaging/linux/updateforge-apt-helper "$pkg/usr/libexec/updateforge/updateforge-apt-helper"
 install -D -m 644 packaging/linux/io.github.mikeholp87.updateforge.policy "$pkg/usr/share/polkit-1/actions/io.github.mikeholp87.updateforge.policy"
+installed_size="$(du -sk --exclude=DEBIAN "$pkg" | cut -f1)"
 cat >"$pkg/DEBIAN/control" <<CONTROL
 Package: updateforge
 Version: $version
@@ -56,7 +83,8 @@ Maintainer: Mike Holp <4627227+mikeholp87@users.noreply.github.com>
 Section: utils
 Priority: optional
 Homepage: https://mikeholp87.github.io/update-forge/
-Depends: libc6, libstdc++6, zlib1g, libfontconfig1, libx11-6, libice6, libsm6, libicu72 | libicu74 | libicu76 | libicu77 | libicu78
+Installed-Size: $installed_size
+Depends: libc6, libstdc++6, zlib1g, libssl3t64 | libssl3, libfontconfig1, libx11-6, libice6, libsm6, libicu72 | libicu74 | libicu76 | libicu77 | libicu78
 Recommends: policykit-1 | polkitd, libnotify-bin, network-manager
 Description: Software updater for apt, Flatpak, Snap and npm
  UpdateForge inventories what is installed, shows which applications have a
@@ -64,6 +92,9 @@ Description: Software updater for apt, Flatpak, Snap and npm
  on demand or on a schedule (systemd user timer). No telemetry, no accounts.
 CONTROL
 chmod -R go-w,a+rX "$pkg"
+# Checksums let `debsums` and `dpkg --verify` check an installed package.
+(cd "$pkg" && find . -type f ! -path './DEBIAN/*' -printf '%P\0' | xargs -0 md5sum >DEBIAN/md5sums)
+chmod 644 "$pkg/DEBIAN/md5sums"
 dpkg-deb --root-owner-group --build "$pkg" "artifacts/updateforge_${version}_${arch}.deb" >/dev/null
 
 (cd artifacts && sha256sum "UpdateForge-$version-$rid-portable.tar.gz" "updateforge_${version}_${arch}.deb" >"SHA256SUMS-linux")

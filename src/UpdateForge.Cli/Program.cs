@@ -6,6 +6,7 @@ using UpdateForge.Core.Bundles;
 using UpdateForge.Core.Export;
 using UpdateForge.Core.Models;
 using UpdateForge.Core.Providers;
+using UpdateForge.Core.Recommendations;
 using UpdateForge.Core.Updates;
 using UpdateForge.Infrastructure;
 using UpdateForge.Core.Processes;
@@ -75,6 +76,9 @@ internal static class Program
             .AddSingleton<IUpdateProvider, CargoProvider>()
             .AddSingleton<IUpdateProvider, PipxProvider>()
             .AddSingleton<IUpdateProvider, HomebrewProvider>()
+            .AddSingleton<IDiscoverySource, AptRelationDiscovery>()
+            .AddSingleton<IDiscoverySource, FlathubDiscovery>()
+            .AddSingleton<ISystemSignalSource, LinuxSystemSignals>()
             .AddSingleton<IScheduleService, SystemdScheduleService>()
             .AddSingleton<INetworkCostProbe, NmcliNetworkCostProbe>()
 #endif
@@ -226,7 +230,7 @@ internal static class Program
         {
             case "status":
                 var st = svc.GetStatus();
-                Console.WriteLine(json ? JsonSerializer.Serialize(st, JsonOut) : st.ToString());
+                Console.WriteLine(json ? JsonSerializer.Serialize(st, JsonOut) : DescribeSchedule(st));
                 return ExitCodes.Ok;
             case "apply":
                 var settings = await sp.GetRequiredService<ISettingsStore>().LoadAsync(ct);
@@ -240,6 +244,15 @@ internal static class Program
             default:
                 return Fail("Usage: updateforge schedule [status|apply|remove]", ExitCodes.Usage);
         }
+    }
+
+    private static string DescribeSchedule(ScheduleStatus st)
+    {
+        if (!st.Exists) return "Not scheduled. Run: updateforge schedule apply";
+        var state = st.Enabled ? "enabled" : "disabled";
+        var next = st.Enabled && st.NextRun is { } n ? $", next run {n:g}" : "";
+        var last = st.LastRun is { } l ? $", last run {l:g}" : ", has not run yet";
+        return $"Scheduled ({state}){next}{last}" + (st.Detail is { Length: > 0 } d && d != state ? $"\n{d}" : "");
     }
 
     private static async Task<IReadOnlyList<InstalledApplication>> LoadInventory(ServiceProvider sp, bool forceScan, CancellationToken ct)
@@ -375,33 +388,39 @@ internal static class Program
 
     private static async Task<int> Providers(ServiceProvider sp, bool json, CancellationToken ct)
     {
-        var rows = new List<object>();
+        var rows = new List<(string Id, string DisplayName, string Health, string? Version, string? Message, bool CanUpdate)>();
         foreach (var p in sp.GetRequiredService<ProviderRegistry>().All)
         {
             var a = await p.CheckAvailabilityAsync(ct);
-            rows.Add(new { p.Id, p.DisplayName, Health = a.Health.ToString(), a.Version, a.Message, CanUpdate = p.Capabilities.CanUpdate });
+            rows.Add((p.Id, p.DisplayName, a.Health.ToString(), a.Version, a.Message, p.Capabilities.CanUpdate));
         }
-        if (json) Console.WriteLine(JsonSerializer.Serialize(rows, JsonOut));
-        else foreach (var r in rows) Console.WriteLine(r);
+        if (json) Console.WriteLine(JsonSerializer.Serialize(rows.Select(r => new { r.Id, r.DisplayName, r.Health, r.Version, r.Message, r.CanUpdate }), JsonOut));
+        else
+        {
+            var w = Math.Max(rows.Max(r => r.DisplayName.Length), "Manager".Length);
+            Console.WriteLine($"{"Manager".PadRight(w)}  {"Health",-12}  Details");
+            foreach (var r in rows) Console.WriteLine($"{r.DisplayName.PadRight(w)}  {r.Health,-12}  {(string.IsNullOrWhiteSpace(r.Version) ? r.Message : r.Version)}");
+        }
         return ExitCodes.Ok;
     }
 
     private static async Task<int> Doctor(ServiceProvider sp, bool json, CancellationToken ct)
     {
-        var checks = new List<(string Name, bool Ok, string Detail)>
+        // Status: "ok", "skipped" (an optional tool that is not installed: informational) or "fail".
+        var checks = new List<(string Name, string Status, string Detail)>
         {
-            ("OS", !OperatingSystem.IsWindows() || Environment.OSVersion.Version.Build >= 19041, Environment.OSVersion.VersionString),
-            ("Database", File.Exists(UpdateForge.Infrastructure.Persistence.Database.DefaultPath), UpdateForge.Infrastructure.Persistence.Database.DefaultPath),
-            ("Log directory", Directory.Exists(ServiceCollectionExtensions.LogDirectory), ServiceCollectionExtensions.LogDirectory),
+            ("OS", !OperatingSystem.IsWindows() || Environment.OSVersion.Version.Build >= 19041 ? "ok" : "fail", Environment.OSVersion.VersionString),
+            ("Database", File.Exists(UpdateForge.Infrastructure.Persistence.Database.DefaultPath) ? "ok" : "fail", UpdateForge.Infrastructure.Persistence.Database.DefaultPath),
+            ("Log directory", Directory.Exists(ServiceCollectionExtensions.LogDirectory) ? "ok" : "fail", ServiceCollectionExtensions.LogDirectory),
         };
         foreach (var p in sp.GetRequiredService<ProviderRegistry>().All)
         {
             var a = await p.CheckAvailabilityAsync(ct);
-            // Optional tools that are simply not installed are informational, not failures.
-            checks.Add(($"Provider {p.Id}", a.IsAvailable || a.Health == ProviderHealth.NotInstalled, a.Version ?? a.Message ?? a.Health.ToString()));
+            // Optional tools that are simply not installed are informational, not failures, and are not shown as healthy either.
+            checks.Add(($"Provider {p.Id}", a.IsAvailable ? "ok" : a.Health == ProviderHealth.NotInstalled ? "skipped" : "fail", a.Version ?? a.Message ?? a.Health.ToString()));
         }
-        if (json) Console.WriteLine(JsonSerializer.Serialize(checks.Select(c => new { c.Name, c.Ok, c.Detail }), JsonOut));
-        else foreach (var c in checks) Console.WriteLine($"[{(c.Ok ? " OK " : "FAIL")}] {c.Name}: {c.Detail}");
-        return checks.All(c => c.Ok) ? ExitCodes.Ok : ExitCodes.Error;
+        if (json) Console.WriteLine(JsonSerializer.Serialize(checks.Select(c => new { c.Name, Ok = c.Status != "fail", c.Status, c.Detail }), JsonOut));
+        else foreach (var c in checks) Console.WriteLine($"[{(c.Status == "ok" ? " OK " : c.Status == "skipped" ? "SKIP" : "FAIL")}] {c.Name}: {c.Detail}");
+        return checks.All(c => c.Status != "fail") ? ExitCodes.Ok : ExitCodes.Error;
     }
 }
