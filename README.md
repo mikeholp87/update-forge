@@ -1,10 +1,14 @@
 # UpdateForge
 
+[![License](https://img.shields.io/github/license/mikeholp87/update-forge)](https://github.com/mikeholp87/update-forge/blob/main/LICENSE)
+
 Website: <https://mikeholp87.github.io/update-forge/>
 
 A free, open-source (MIT) software updater for **Windows 11** (and compatible Windows 10) and **Linux**. It inventories what is installed, shows which applications have a newer version available, and installs updates through trusted package managers, on demand or on a schedule. No telemetry, no accounts, no ads.
 
 > **Status: 0.3.4.** See [Known limitations](#known-limitations) and [docs/ENGINEERING-REPORT.md](docs/ENGINEERING-REPORT.md) for exactly what has and has not been tested.
+
+<p align="center"><img src="site/assets/dashboard-dark.png" alt="The UpdateForge dashboard on Windows" width="49%"> <img src="site/assets/linux-dashboard-dark.png" alt="The UpdateForge dashboard on Linux" width="49%"></p>
 
 ## Features
 
@@ -98,3 +102,7 @@ MIT, see [LICENSE](LICENSE).
 ## Acknowledgments
 
 [WPF UI](https://github.com/lepoco/wpfui) (MIT), [TaskScheduler](https://github.com/dahall/TaskScheduler) (MIT), Serilog (Apache-2.0), Microsoft.Data.Sqlite (MIT), CommunityToolkit.Mvvm (MIT), WiX Toolset (MS-RL, build-time only). Design informed by public documentation of WinGet, Scoop, Chocolatey, UniGetUI and Patch My PC; no code was copied from them.
+
+## Author
+
+Built by [Mike Holp](https://www.ai-automation-station.com/about.html) with AI coding tools. See the Update Forge guide on [AI Automation Station](https://www.ai-automation-station.com/guides/updateforge-package-manager-windows-linux.html), and more projects at [github.com/mikeholp87](https://github.com/mikeholp87).

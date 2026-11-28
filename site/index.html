@@ -9,7 +9,7 @@
     <title>Update Forge: a free, private software updater for Windows and Linux</title>
     <meta
       name="description"
-      content="Update Forge is a free, open source software updater for Windows 11 and Linux. It finds what is installed, shows which apps have a newer version, and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm, on demand or on a schedule. No telemetry, no accounts."
+      content="Update Forge is a free software updater for Windows 11 and Linux. It finds outdated apps and updates them through WinGet, apt, Flatpak and more."
     />
     <link rel="canonical" href="https://mikeholp87.github.io/update-forge/" />
     <link rel="icon" href="./assets/icon-72.png" type="image/png" />
@@ -35,21 +35,35 @@
     <meta name="twitter:image" content="https://mikeholp87.github.io/update-forge/assets/og.png" />
     <meta name="twitter:image:alt" content="Update Forge: keep every Windows app up to date. Free and open source, no telemetry, no accounts." />
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Update Forge",
-        "description": "A software updater for Windows 11 and Linux that inventories installed applications and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm.",
-        "applicationCategory": "UtilitiesApplication",
-        "operatingSystem": "Windows 11, Windows 10 (2004 and later), Linux",
-        "url": "https://mikeholp87.github.io/update-forge/",
-        "downloadUrl": "https://github.com/mikeholp87/update-forge",
-        "license": "https://github.com/mikeholp87/update-forge/blob/main/LICENSE",
-        "isAccessibleForFree": true,
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "Mike Holp" }
-      }
-    </script>
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Update Forge",
+  "description": "A software updater for Windows 11 and Linux that inventories installed applications and installs updates through WinGet, Scoop, Chocolatey, apt, Flatpak, Snap and npm.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Windows 11, Windows 10 (2004 and later), Linux",
+  "url": "https://mikeholp87.github.io/update-forge/",
+  "downloadUrl": "https://github.com/mikeholp87/update-forge",
+  "license": "https://github.com/mikeholp87/update-forge/blob/main/LICENSE",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Mike Holp",
+    "url": "https://www.ai-automation-station.com/about.html",
+    "sameAs": [
+      "https://github.com/mikeholp87",
+      "https://www.ai-automation-station.com/"
+    ]
+  },
+  "softwareVersion": "@VERSION@",
+  "dateModified": "@DATE@"
+}
+</script>
     <style>
       :root {
         color-scheme: light dark;
@@ -661,7 +675,19 @@
           font-size: 12px;
         }
       }
+    
+.sponsor-heart { color: #bf3989; }
+@media (prefers-color-scheme: dark) { .sponsor-heart { color: #db61a2; } }
+.pill.sponsor { display: inline-flex; align-items: center; gap: 6px; }
+.pill.sponsor:hover { border-color: #bf3989; }
+.support { margin: 72px 0 24px; padding: 36px 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); text-align: center; }
+.support h2 { margin: 0 0 10px; }
+.support p { max-width: 58ch; margin: 0 auto 22px; color: var(--muted); }
+.support p.small { margin: 16px auto 0; font-size: 14px; }
+.button.sponsor-cta { gap: 8px; }
+@media (max-width: 480px) { header { flex-wrap: wrap; row-gap: 10px; } .nav { flex-wrap: wrap; gap: 8px; } .nav .pill { padding: 7px 11px; } .nav a { font-size: 14px; } .support { padding: 28px 18px; } }
     </style>
+      <style>.hero{grid-template-columns:minmax(0,1fr)!important;gap:28px!important}.demo-frame{width:100%;margin:0}.demo-frame iframe{display:block;width:100%;border:0;background:transparent}.demo-caption{margin:12px 0 0;font-size:13px;line-height:1.5;opacity:.75}</style>
   </head>
   <body>
     <a class="skip" href="#content">Skip to content</a>
@@ -677,6 +703,7 @@
           <a href="#install">Install</a>
           <a class="hide-sm" href="#faq">FAQ</a>
           <a class="pill" href="https://github.com/mikeholp87/update-forge">GitHub</a>
+        <a class="pill sponsor" href="https://github.com/sponsors/mikeholp87"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor</a>
         </nav>
       </header>
       <main id="content">
@@ -701,17 +728,17 @@
               <li>Linux</li>
             </ul>
           </div>
-          <figure class="shot">
-            <img
-              src="./assets/dashboard-dark.png"
-              width="1360"
-              height="495"
-              fetchpriority="high"
-              alt="The Update Forge dashboard after a scan: 140 installed applications, 2 updates available, 50 up to date and 62 that require attention, with Claude Code and PowerShell listed as Update ready"
-            />
-            <figcaption>The dashboard after a scan. Updates ready to install are listed with one click each.</figcaption>
-          </figure>
+          <div class="demo-frame"><iframe id="demo-frame" src="./embed/" title="Interactive Update Forge demo with sample data" loading="lazy" height="720"></iframe></div>
+          <p class="demo-caption">This is a browser demo with a made-up software list. It cannot see or change what is installed on your computer, and nothing leaves this page.</p>
         </section>
+<section id="what-is" class="features" aria-labelledby="what-is-title">
+<div class="section-head">
+<h2 id="what-is-title">What is Update Forge?</h2>
+<p>Update Forge is a free, open source software updater for Windows 11 and Linux. It scans the applications installed on your computer, shows which ones have a newer version and installs updates through trusted package managers, either on demand or on a schedule. On Windows it reads WinGet, Microsoft Store, Scoop, Chocolatey and npm packages; on Linux it uses apt, Flatpak, Snap and npm. After each install it re-reads the installed version, so an update that left the old version in place is reported as a failure rather than a success. An unknown version is never reported as newer, and the app tells you plainly when it cannot update something. Update Forge has a desktop app and an updateforge-cli command with scan, outdated and update --all, uses the MIT license, and has no telemetry, accounts or ads.</p>
+<p><small>Version @VERSION@ · Released @DATE_HUMAN@</small></p>
+</div>
+</section>
+
 
         <section id="features" class="features" aria-labelledby="features-title">
           <div class="section-head">
@@ -1138,16 +1165,24 @@ updateforge</code></pre>
             </p>
           </details>
         </section>
+      
+      <section id="support" class="support" aria-labelledby="support-title">
+        <h2 id="support-title"><span class="sponsor-heart" aria-hidden="true">♥</span> Support Update Forge</h2>
+        <p>Update Forge is free and open source. If it saves you time, sponsoring helps me keep fixing bugs, answering issues and shipping updates. Every bit helps, and you can stop any time.</p>
+        <a class="button secondary sponsor-cta" href="https://github.com/sponsors/mikeholp87"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor on GitHub</a>
+        <p class="small">Can't sponsor? A star on <a href="https://github.com/mikeholp87/update-forge">GitHub</a> also helps other people find it.</p>
+      </section>
       </main>
       <footer>
         <span>Update Forge is free and open source under the MIT license.</span>
         <nav aria-label="Footer">
           <a href="https://github.com/mikeholp87/update-forge">GitHub</a>
+          <a href="https://github.com/sponsors/mikeholp87"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor</a>
           <a href="https://github.com/mikeholp87/update-forge/issues">Issues</a>
           <a href="https://github.com/mikeholp87/update-forge/blob/main/LICENSE">License</a>
           <a href="https://github.com/mikeholp87/update-forge/blob/main/SECURITY.md">Security</a>
           <a href="https://github.com/mikeholp87/update-forge/blob/main/CONTRIBUTING.md">Contributing</a>
-        </nav>
+        <a href="https://www.ai-automation-station.com/guides/updateforge-package-manager-windows-linux.html">Update Forge guide</a><a href="https://www.ai-automation-station.com/">AI Automation Station</a></nav>
       </footer>
     </div>
     <p id="copy-status" class="visually-hidden" role="status" aria-live="polite"></p>
@@ -1174,5 +1209,93 @@ updateforge</code></pre>
         box.appendChild(button);
       });
     </script>
+  <style data-lightbox>
+  .lb-trigger { cursor: zoom-in; }
+  .lb-trigger:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+  html.lb-open { overflow: hidden; }
+  dialog.lb { border: 0; padding: 0; background: transparent; color: #fff; width: 100vw; height: 100vh; max-width: none; max-height: none; overflow: hidden; }
+  dialog.lb::backdrop { background: rgba(0, 0, 0, 0.88); }
+  .lb-stage { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 100%; padding: 56px 16px 20px; box-sizing: border-box; }
+  .lb-img { display: block; max-width: min(96vw, 1800px); max-height: calc(100vh - 128px); width: auto; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); background: #111; }
+  .lb-caption { max-width: min(92vw, 900px); margin: 0; text-align: center; font-size: 15px; line-height: 1.45; color: #eee; }
+  .lb-count { font-size: 13px; color: #bbb; }
+  .lb-btn { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.16); color: #fff; font: 28px/1 system-ui, sans-serif; cursor: pointer; }
+  .lb-btn:hover { background: rgba(255, 255, 255, 0.28); }
+  .lb-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .lb-close { top: 12px; right: 12px; }
+  .lb-prev { left: 12px; top: 50%; transform: translateY(-50%); }
+  .lb-next { right: 12px; top: 50%; transform: translateY(-50%); }
+  .lb-single .lb-prev, .lb-single .lb-next, .lb-single .lb-count { display: none; }
+  @media (max-width: 640px) { .lb-prev, .lb-next { top: auto; bottom: 12px; transform: none; } .lb-stage { padding-bottom: 68px; } }
+</style>
+<script data-lightbox>
+  (() => {
+    const imgs = [...document.querySelectorAll('figure.shot img, figure.workspace img')];
+    if (!imgs.length || typeof HTMLDialogElement !== 'function') return;
+
+    // Largest image available for a screenshot: the biggest srcset candidate that applies, else the plain src.
+    const largest = (img) => {
+      const link = img.closest('a[href]');
+      if (link && /\.(png|jpe?g|webp|avif|gif)(\?|$)/i.test(link.getAttribute('href'))) return link.href;
+      const sets = [];
+      const pic = img.closest('picture');
+      if (pic) for (const s of pic.querySelectorAll('source[srcset]')) if (!s.media || matchMedia(s.media).matches) sets.push(s.getAttribute('srcset'));
+      if (img.getAttribute('srcset')) sets.push(img.getAttribute('srcset'));
+      let best = { w: 0, url: img.currentSrc || img.src };
+      for (const set of sets) for (const part of set.split(',')) {
+        const [url, size] = part.trim().split(/\s+/);
+        const w = parseInt(size, 10) || 0;
+        if (url && w > best.w) best = { w, url: new URL(url, document.baseURI).href };
+      }
+      return best.url;
+    };
+    const captionOf = (img) => img.closest('figure')?.querySelector('figcaption')?.textContent.trim() || '';
+
+    const dlg = document.createElement('dialog');
+    dlg.className = 'lb';
+    dlg.setAttribute('aria-label', 'Screenshot viewer');
+    dlg.innerHTML = '<div class="lb-stage"><button type="button" class="lb-btn lb-close" aria-label="Close">&times;</button><button type="button" class="lb-btn lb-prev" aria-label="Previous screenshot">&lsaquo;</button><img class="lb-img" alt=""><p class="lb-caption"></p><span class="lb-count" aria-live="polite"></span><button type="button" class="lb-btn lb-next" aria-label="Next screenshot">&rsaquo;</button></div>';
+    document.body.append(dlg);
+    const $ = (s) => dlg.querySelector(s);
+    const view = $('.lb-img'), cap = $('.lb-caption'), count = $('.lb-count');
+    let index = 0, opener = null, token = 0;
+    dlg.classList.toggle('lb-single', imgs.length < 2);
+
+    const show = (i) => {
+      index = (i + imgs.length) % imgs.length;
+      const img = imgs[index], url = largest(img), mine = ++token;
+      view.alt = img.alt;
+      view.src = img.currentSrc || img.src; // thumbnail first, so the box opens instantly
+      const hi = new Image();
+      hi.onload = () => { if (mine === token) view.src = url; };
+      hi.src = url;
+      cap.textContent = captionOf(img);
+      cap.hidden = !cap.textContent;
+      count.textContent = imgs.length > 1 ? `${index + 1} / ${imgs.length}` : '';
+      for (const n of [imgs[(index + 1) % imgs.length], imgs[(index - 1 + imgs.length) % imgs.length]]) new Image().src = largest(n);
+    };
+    const open = (i, from) => { opener = from; show(i); document.documentElement.classList.add('lb-open'); dlg.showModal(); $('.lb-close').focus(); };
+
+    imgs.forEach((img, i) => {
+      img.classList.add('lb-trigger');
+      img.tabIndex = 0;
+      img.setAttribute('role', 'button');
+      img.setAttribute('aria-haspopup', 'dialog');
+      img.setAttribute('aria-label', 'View larger: ' + (img.alt || 'screenshot'));
+      img.addEventListener('click', (e) => { e.preventDefault(); open(i, img); });
+      img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i, img); } });
+    });
+    $('.lb-close').addEventListener('click', () => dlg.close());
+    $('.lb-prev').addEventListener('click', () => show(index - 1));
+    $('.lb-next').addEventListener('click', () => show(index + 1));
+    dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.classList.contains('lb-stage')) dlg.close(); });
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); show(index - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); show(index + 1); }
+    });
+    dlg.addEventListener('close', () => { document.documentElement.classList.remove('lb-open'); view.removeAttribute('src'); opener?.focus(); });
+  })();
+</script>
+      <script>(function(){var f=document.getElementById("demo-frame");if(!f||f.hasAttribute("data-fixed"))return;function fit(){try{f.style.height=f.contentDocument.body.offsetHeight+2+"px"}catch(e){}}f.addEventListener("load",function(){fit();try{new ResizeObserver(fit).observe(f.contentDocument.body)}catch(e){}})})();</script>
   </body>
 </html>
