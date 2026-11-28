@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.3.5] - 2026-11-28
 ### Fixed
 - The `.deb` now depends on OpenSSL (`libssl3t64 | libssl3`), which .NET loads at runtime, so HTTPS works on minimal systems. It also ships `/usr/share/doc/updateforge/copyright` and `THIRD-PARTY-NOTICES.txt` (licences of the bundled .NET runtime, libraries and fonts), `Installed-Size` and `md5sums`.
 - apt installs and upgrades pass `--no-remove`, both in the root helper and in the provider, so a conflicting package makes apt stop instead of removing installed packages as root. UpdateForge explains what happened and how to run it by hand.
