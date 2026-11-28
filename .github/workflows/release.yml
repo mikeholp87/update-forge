@@ -60,6 +60,8 @@ jobs:
         run: ./scripts/publish-linux.sh "${GITHUB_REF_NAME#v}" linux-x64
       - name: Installs, verifies and removes cleanly
         run: |
+          # The runner image's package index can be older than the mirror (404 on Recommends such as network-manager).
+          sudo apt-get update
           sudo apt-get install -y ./artifacts/updateforge_*_amd64.deb
           sudo dpkg --verify updateforge
           updateforge-cli --help >/dev/null
