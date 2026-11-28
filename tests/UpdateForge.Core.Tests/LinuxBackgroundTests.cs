@@ -52,6 +52,24 @@ public class SystemdScheduleTests : IDisposable
     }
 
     [Fact]
+    public void The_program_a_unit_runs_can_be_read_back()
+    {
+        Assert.Equal("/opt/updateforge/updateforge-cli", SystemdScheduleService.ParseExecutable(SystemdScheduleService.ServiceUnit(new AppSettings(), "/opt/updateforge/updateforge-cli")));
+        Assert.Null(SystemdScheduleService.ParseExecutable("[Service]\nExecStart=/bin/true\n"));
+        Assert.Null(SystemdScheduleService.ParseExecutable(""));
+    }
+
+    [Fact]
+    public void Status_reports_which_program_the_timer_runs()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "systemd unit paths are Linux paths; a Windows temp path contains backslashes.");
+        var runner = new ScriptedRunner(_ => Ok());
+        var svc = new SystemdScheduleService(runner, _dir);
+        svc.Apply(new AppSettings(), _exe);
+        Assert.Equal(_exe, svc.GetStatus().Executable);
+    }
+
+    [Fact]
     public void Running_on_battery_drops_the_ac_condition() =>
         Assert.DoesNotContain("ConditionACPower", SystemdScheduleService.ServiceUnit(new AppSettings { RunOnBattery = true }, "/opt/uf/updateforge-cli"));
 

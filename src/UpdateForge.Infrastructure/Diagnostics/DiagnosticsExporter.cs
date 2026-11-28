@@ -40,6 +40,18 @@ public sealed class DiagnosticsExporter(ISettingsStore settings, IScanHistorySto
 {
     private static readonly JsonSerializerOptions IndentedJson = new() { WriteIndented = true };
 
+    /// <summary>
+    /// The settings as JSON for a bug report. The list of dismissed recommendations is replaced by its size: it says which software the
+    /// user has and does not want, which is nobody's business in a public issue.
+    /// </summary>
+    public static string SettingsJson(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var node = JsonSerializer.SerializeToNode(settings, IndentedJson)!.AsObject();
+        node[nameof(AppSettings.DismissedRecommendations)] = $"{settings.DismissedRecommendations.Count} entries (not exported)";
+        return node.ToJsonString(IndentedJson);
+    }
+
     public async Task ExportAsync(string zipPath, string logDirectory, CancellationToken ct)
     {
         // Never delete an arbitrary file because of a mistyped path: only an earlier .zip may be replaced.
@@ -67,7 +79,7 @@ public sealed class DiagnosticsExporter(ISettingsStore settings, IScanHistorySto
 
         Add("system.txt", $"UpdateForge {typeof(DiagnosticsExporter).Assembly.GetName().Version}\nOS: {Environment.OSVersion}\n64-bit OS: {Environment.Is64BitOperatingSystem}\nCulture: {System.Globalization.CultureInfo.CurrentCulture.Name}\n.NET: {Environment.Version}\n");
         Add("providers.txt", provider.ToString());
-        Add("settings.json", JsonSerializer.Serialize(await settings.LoadAsync(ct).ConfigureAwait(false), IndentedJson));
+        Add("settings.json", SettingsJson(await settings.LoadAsync(ct).ConfigureAwait(false)));
         var last = await scans.GetLastAsync(ct).ConfigureAwait(false);
         Add("last-scan.txt", last?.ToString() ?? "No scan recorded.");
         var recent = await history.QueryAsync(null, 50, ct).ConfigureAwait(false);

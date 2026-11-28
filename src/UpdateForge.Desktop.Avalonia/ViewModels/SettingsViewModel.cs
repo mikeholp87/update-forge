@@ -39,18 +39,37 @@ public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleSer
         Mode = s.Mode; Interval = s.Interval; CustomHours = s.CustomIntervalHours; CheckAtStartup = s.CheckAtStartup;
         RunOnBattery = s.RunOnBattery; RunOnMetered = s.RunOnMeteredConnection; CloseToTray = s.CloseToTray; MinimizeToTray = s.MinimizeToTray;
         Theme = s.Theme; NotifyNew = s.NotifyNewUpdates; NotifyCompleted = s.NotifyCompleted; NotifyFailed = s.NotifyFailed; NotifyRestart = s.NotifyRestart;
-        RefreshScheduleText();
+        await RefreshScheduleTextAsync(s);
     }
 
-    private void RefreshScheduleText()
+    /// <summary>
+    /// systemctl calls can take seconds, so they run on a worker thread, never the UI thread. A timer that points at a program that moved or was
+    /// removed (a portable copy that was relocated, an old install) is re-registered here: it is the schedule the user already chose.
+    /// </summary>
+    private async Task RefreshScheduleTextAsync(AppSettings? settings = null)
     {
         try
         {
-            var st = schedule.GetStatus();
-            ScheduleText = !st.Exists ? "No systemd timer is registered." : $"systemd timer registered. Next run: {st.NextRun?.ToString("g", System.Globalization.CultureInfo.CurrentCulture) ?? "n/a"}";
+            var current = SystemdScheduleService.DefaultExecutablePath;
+            var text = await Task.Run(() =>
+            {
+                var st = schedule.GetStatus();
+                if (st.Exists && settings is not null && st.Executable is { } exe && exe != current && File.Exists(current))
+                {
+                    schedule.Apply(settings.Validated(), current);
+                    st = schedule.GetStatus();
+                    return "The systemd timer pointed at a program that moved, so it was re-registered. " + Describe(st);
+                }
+                return Describe(st);
+            });
+            ScheduleText = text;
         }
         catch (Exception ex) { ScheduleText = "Could not read the systemd timer: " + ex.Message; }
     }
+
+    private static string Describe(ScheduleStatus st) => !st.Exists ? "No systemd timer is registered."
+        : st.Executable is { } exe && !File.Exists(exe) ? $"systemd timer registered, but it runs {exe}, which no longer exists. Save the settings to fix it."
+        : $"systemd timer registered. Next run: {st.NextRun?.ToString("g", System.Globalization.CultureInfo.CurrentCulture) ?? "n/a"}";
 
     [RelayCommand]
     private async Task SaveAsync()
@@ -64,19 +83,20 @@ public sealed partial class SettingsViewModel(ISettingsStore store, IScheduleSer
         await store.SaveAsync(s, default);
         try
         {
-            schedule.Apply(s.Validated(), SystemdScheduleService.DefaultExecutablePath);
+            var validated = s.Validated();
+            await Task.Run(() => schedule.Apply(validated, SystemdScheduleService.DefaultExecutablePath));
             SaveMessage = "Saved. systemd timer updated.";
         }
         catch (Exception ex) { SaveMessage = "Settings saved, but the systemd timer could not be updated: " + ex.Message; }
-        RefreshScheduleText();
+        await RefreshScheduleTextAsync();
         Saved?.Invoke(s.Validated());
     }
 
     [RelayCommand]
-    private void RemoveSchedule()
+    private async Task RemoveScheduleAsync()
     {
-        try { schedule.Remove(); SaveMessage = "systemd timer removed."; }
+        try { await Task.Run(schedule.Remove); SaveMessage = "systemd timer removed."; }
         catch (Exception ex) { SaveMessage = "Could not remove the systemd timer: " + ex.Message; }
-        RefreshScheduleText();
+        await RefreshScheduleTextAsync();
     }
 }

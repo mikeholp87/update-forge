@@ -1,6 +1,15 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- The `.deb` now depends on OpenSSL (`libssl3t64 | libssl3`), which .NET loads at runtime, so HTTPS works on minimal systems. It also ships `/usr/share/doc/updateforge/copyright` and `THIRD-PARTY-NOTICES.txt` (licences of the bundled .NET runtime, libraries and fonts), `Installed-Size` and `md5sums`.
+- apt installs and upgrades pass `--no-remove`, both in the root helper and in the provider, so a conflicting package makes apt stop instead of removing installed packages as root. UpdateForge explains what happened and how to run it by hand.
+- Diagnostics no longer list which recommendations you dismissed (only how many).
+- `doctor` shows optional tools that are not installed as `SKIP`, not `OK`; `providers` and `schedule status` print readable text instead of raw records.
+- The GUI no longer runs systemctl on the UI thread, and a systemd timer that points at a program that was moved or removed is detected and re-registered.
+- The README no longer claims arm64 packages; the `.deb`, apt repository and tarball are x64 only.
+### Tests
+- The Recommended page's logic is now covered by tests (the GUI project is referenced from the test project).
 ### Added
 - Recommendations learn from more of the computer (Linux): launcher categories classify unknown programs and the dpkg install log seeds the first look.
 - Recommendations can look beyond the catalog: packages your chosen apt packages recommend or suggest (local only), and an opt-in Flathub popularity lookup for the interest areas learned (sends only an area name, cached for a day).

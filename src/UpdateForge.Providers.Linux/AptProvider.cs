@@ -263,7 +263,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
         // Installing the exact version that was checked (not "latest") keeps the result identical to what the user was shown.
         var target = $"{app.PackageId}{(app.Architecture is null ? "" : ":" + app.Architecture)}={version}";
         _log.LogInformation("Upgrading apt package {Package}", target);
-        return await RunInstallAsync(["upgrade", target], ["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", "-o", "DPkg::Lock::Timeout=600", "--", target], "Upgraded with apt.", progress, cancellationToken).ConfigureAwait(false);
+        return await RunInstallAsync(["upgrade", target], ["install", "--only-upgrade", "-y", "--no-remove", "-o", "Dpkg::Options::=--force-confold", "-o", "DPkg::Lock::Timeout=600", "--", target], "Upgraded with apt.", progress, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<UpdateResult> InstallAsync(InstallRequest request, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
@@ -274,7 +274,7 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
             return UpdateResult.Fail(ErrorCategory.SecurityBlocked, "apt version failed validation; refusing to run.");
         _log.LogInformation("Installing apt package {Package} (correlation {Correlation})", request.PackageId, request.CorrelationId);
         var target = request.Version is null ? request.PackageId : $"{request.PackageId}={request.Version}";
-        return await RunInstallAsync(["install", target], ["install", "-y", "-o", "Dpkg::Options::=--force-confold", "-o", "DPkg::Lock::Timeout=600", "--", target], "Installed.", progress, cancellationToken).ConfigureAwait(false);
+        return await RunInstallAsync(["install", target], ["install", "-y", "--no-remove", "-o", "Dpkg::Options::=--force-confold", "-o", "DPkg::Lock::Timeout=600", "--", target], "Installed.", progress, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<UpdateResult> RunInstallAsync(string[] helperArgs, string[] aptArgs, string successMessage, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
@@ -306,6 +306,10 @@ public sealed partial class AptProvider : IUpdateProvider, IPackageManager, IPac
                 Message = "Another package manager (apt, a software center or unattended-upgrades) is running. Try again when it finishes." };
         if (text.Contains("Temporary failure resolving", StringComparison.Ordinal) || text.Contains("Could not resolve", StringComparison.Ordinal) || text.Contains("Failed to fetch", StringComparison.Ordinal))
             return UpdateResult.Fail(ErrorCategory.Network, "apt could not download the package.", r.ExitCode, tail);
+        // --no-remove: apt refuses instead of silently removing installed packages to make room for this one.
+        if (text.Contains("remove is disabled", StringComparison.Ordinal) || text.Contains("Packages need to be removed", StringComparison.Ordinal))
+            return UpdateResult.Fail(ErrorCategory.InstallerFailed, "apt would have to remove other packages to do this, so UpdateForge stopped. Run it in a terminal to see which: sudo apt-get " + string.Join(' ', aptArgs[..1]) + " " + aptArgs[^1],
+                r.ExitCode, tail);
         if (text.Contains("was not found", StringComparison.Ordinal) || text.Contains("Unable to locate package", StringComparison.Ordinal))
             return UpdateResult.Fail(ErrorCategory.NoApplicableInstaller, "That version is no longer available. Refresh apt sources and scan again.", r.ExitCode, tail);
         return UpdateResult.Fail(ErrorCategory.InstallerFailed, $"apt exited with code {r.ExitCode}.", r.ExitCode, tail);

@@ -1,3 +1,4 @@
+using UpdateForge.Application;
 using UpdateForge.Infrastructure.Diagnostics;
 using Xunit;
 
@@ -30,4 +31,17 @@ public class RedactorTests
     [Fact]
     public void Removes_long_hex_tokens() =>
         Assert.DoesNotContain("0123456789abcdef0123456789abcdef01234567", Redactor.Redact("hash 0123456789abcdef0123456789abcdef01234567", "zz", "zz", "C:\\none"), StringComparison.Ordinal);
+}
+
+public class DiagnosticsSettingsTests
+{
+    [Fact]
+    public void Dismissed_recommendations_are_counted_but_never_exported()
+    {
+        var json = DiagnosticsExporter.SettingsJson(new AppSettings { DismissedRecommendations = ["found:apt:secret-tool", "gamemode"] });
+        Assert.DoesNotContain("secret-tool", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("gamemode", json, StringComparison.Ordinal);
+        Assert.Contains("2 entries (not exported)", json, StringComparison.Ordinal);
+        Assert.Contains("\"Interval\"", json, StringComparison.Ordinal);   // the rest of the settings is still there for debugging
+    }
 }

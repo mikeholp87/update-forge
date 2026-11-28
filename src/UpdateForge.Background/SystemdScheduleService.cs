@@ -41,7 +41,25 @@ public sealed class SystemdScheduleService(IProcessRunner runner, string? unitDi
             }
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException) { /* older systemd: no JSON output */ }
-        return new ScheduleStatus(true, enabled, enabled ? next : null, last, enabled ? "enabled" : "disabled");
+        return new ScheduleStatus(true, enabled, enabled ? next : null, last, enabled ? "enabled" : "disabled", ReadExecutable());
+    }
+
+    private string? ReadExecutable()
+    {
+        try { return File.Exists(ServiceFile) ? ParseExecutable(File.ReadAllText(ServiceFile)) : null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>The program in the service unit's <c>ExecStart="…"</c> line (the unit always quotes it), or null.</summary>
+    internal static string? ParseExecutable(string serviceUnit)
+    {
+        foreach (var line in serviceUnit.Split('\n'))
+        {
+            if (!line.StartsWith("ExecStart=\"", StringComparison.Ordinal)) continue;
+            var end = line.IndexOf('"', "ExecStart=\"".Length);
+            return end > 0 ? line["ExecStart=\"".Length..end] : null;
+        }
+        return null;
     }
 
     private static DateTime? FromMicroseconds(JsonElement e, string name) =>
@@ -106,7 +124,8 @@ public sealed class SystemdScheduleService(IProcessRunner runner, string? unitDi
     }
 
     private ProcessResult Run(params string[] args) =>
-        runner.RunAsync(new ProcessSpec(systemctlPath, ["--user", .. args.Where(a => a != "--user")], TimeSpan.FromSeconds(30)), CancellationToken.None).GetAwaiter().GetResult();
+        // Callers are synchronous (the interface is shared with Windows); the GUI calls them from a worker thread, never the UI thread.
+        Task.Run(() => runner.RunAsync(new ProcessSpec(systemctlPath, ["--user", .. args.Where(a => a != "--user")], TimeSpan.FromSeconds(30)), CancellationToken.None)).GetAwaiter().GetResult();
 
     private static void Check(ProcessResult r, string what)
     {

@@ -22,7 +22,7 @@ A free, open-source (MIT) software updater for **Windows 11** (and compatible Wi
 
 ## Requirements
 
-**Linux**: x64 or arm64 with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. Providers: apt, Flatpak, Snap, npm, pnpm, Bun, Yarn Classic, Cargo, pipx and Homebrew, each used when installed. See [Linux](#linux).
+**Linux**: x64 (amd64) with a desktop session (X11 or Wayland) for the GUI; the CLI runs anywhere. The `.deb`, the apt repository and the tarball are built for x64 only. On arm64 you can build your own with `./scripts/publish-linux.sh <version> linux-arm64`, which is not tested in CI. Providers: apt, Flatpak, Snap, npm, pnpm, Bun, Yarn Classic, Cargo, pipx and Homebrew, each used when installed. See [Linux](#linux).
 
 **Windows**: Windows 11 x64 (Windows 10 2004+ expected to work, untested). WinGet (App Installer) is needed for update installation.
 

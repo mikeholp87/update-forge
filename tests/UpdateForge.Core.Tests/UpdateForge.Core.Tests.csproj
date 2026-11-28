@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\src\UpdateForge.Providers.Npm\UpdateForge.Providers.Npm.csproj" />
     <ProjectReference Include="..\..\src\UpdateForge.Providers.Linux\UpdateForge.Providers.Linux.csproj" />
     <ProjectReference Include="..\..\src\UpdateForge.Background\UpdateForge.Background.csproj" />
+    <ProjectReference Include="..\..\src\UpdateForge.Desktop.Avalonia\UpdateForge.Desktop.Avalonia.csproj" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
